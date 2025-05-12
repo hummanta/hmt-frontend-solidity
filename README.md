@@ -82,3 +82,7 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+
+The parser in this project is heavily based on or copied from
+[solang-parser](https://github.com/hyperledger/solang).
+This project also follows the Apache 2.0 license for collaboration.

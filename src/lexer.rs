@@ -41,16 +41,17 @@ impl Iterator for Lexer<'_> {
 
 #[cfg(test)]
 mod test {
+
     use crate::{lexer::Lexer, token::Token};
 
     #[test]
-    fn test_lex_var() {
-        let mut lexer = Lexer::new("var x = 42;");
+    fn test_lex_pragma() {
+        let mut lexer = Lexer::new("pragma solidity ^0.8;");
 
-        assert_eq!(lexer.next(), Some(Ok((0, Token::Var, 3))));
-        assert_eq!(lexer.next(), Some(Ok((4, Token::Identifier(String::from("x")), 5))));
-        assert_eq!(lexer.next(), Some(Ok((6, Token::Assign, 7))));
-        assert_eq!(lexer.next(), Some(Ok((8, Token::Integer(42), 10))));
-        assert_eq!(lexer.next(), Some(Ok((10, Token::Semicolon, 11))));
+        assert_eq!(lexer.next(), Some(Ok((0, Token::Pragma, 6))));
+        assert_eq!(lexer.next(), Some(Ok((7, Token::Identifier(String::from("solidity")), 15))));
+        assert_eq!(lexer.next(), Some(Ok((16, Token::BitwiseXor, 17))));
+        assert_eq!(lexer.next(), Some(Ok((17, Token::Number(0.8), 20))));
+        assert_eq!(lexer.next(), Some(Ok((20, Token::Semicolon, 21))));
     }
 }

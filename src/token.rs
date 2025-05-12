@@ -19,47 +19,53 @@ use logos::Logos;
 use crate::error::LexicalError;
 
 #[derive(Logos, Clone, Debug, PartialEq)]
-#[logos(skip r"[ \t\n\f]+", skip r"#.*\n?", error = LexicalError)]
+#[logos(skip r"[ \t\n\f]+", skip r"//.*\n?", error = LexicalError)]
 pub enum Token {
-    // Keywords
-    #[token("var")]
-    Var,
-
-    #[token("print")]
-    Print,
-
-    // Identifier
     #[regex("[_a-zA-Z][_0-9a-zA-Z]*", |lex| lex.slice().to_string())]
     Identifier(String),
 
-    // Literals
-    #[regex("[1-9][0-9]*", |lex| lex.slice().parse())]
-    Integer(i64),
+    #[regex(r"-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?", |lex| lex.slice().parse::<f64>().unwrap())]
+    Number(f64),
 
-    #[token("(")]
-    LParen,
-
-    #[token(")")]
-    RParen,
-
-    #[token("=")]
-    Assign,
+    // Keywords
+    #[token("pragma")]
+    Pragma,
 
     #[token(";")]
     Semicolon,
 
-    // Operators
-    #[token("+")]
-    Add,
+    #[token("=")]
+    Assign,
+
+    #[token("||")]
+    Or,
+
+    #[token("<")]
+    Less,
+
+    #[token("<=")]
+    LessEqual,
+
+    #[token(">")]
+    More,
+
+    #[token(">=")]
+    MoreEqual,
+
+    #[token("^")]
+    BitwiseXor,
 
     #[token("-")]
-    Sub,
+    Subtract,
 
     #[token("*")]
     Mul,
 
-    #[token("/")]
-    Div,
+    #[token("~")]
+    BitwiseNot,
+
+    #[token(".")]
+    Member,
 
     Error,
 }
@@ -67,37 +73,5 @@ pub enum Token {
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use logos::Logos;
-
-    use super::Token;
-
-    #[test]
-    fn test_var() {
-        let mut lexer = Token::lexer("var x = 42;");
-
-        assert_eq!(lexer.next(), Some(Ok(Token::Var)));
-
-        assert_eq!(lexer.next(), Some(Ok(Token::Identifier(String::from("x")))));
-        assert_eq!(lexer.next(), Some(Ok(Token::Assign)));
-        assert_eq!(lexer.next(), Some(Ok(Token::Integer(42))));
-        assert_eq!(lexer.next(), Some(Ok(Token::Semicolon)));
-    }
-
-    #[test]
-    fn test_print() {
-        let mut lexer = Token::lexer("print(1 + 2);");
-
-        assert_eq!(lexer.next(), Some(Ok(Token::Print)));
-        assert_eq!(lexer.next(), Some(Ok(Token::LParen)));
-        assert_eq!(lexer.next(), Some(Ok(Token::Integer(1))));
-        assert_eq!(lexer.next(), Some(Ok(Token::Add)));
-        assert_eq!(lexer.next(), Some(Ok(Token::Integer(2))));
-        assert_eq!(lexer.next(), Some(Ok(Token::RParen)));
-        assert_eq!(lexer.next(), Some(Ok(Token::Semicolon)));
     }
 }

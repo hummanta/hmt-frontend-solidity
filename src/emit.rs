@@ -17,7 +17,7 @@ use std::collections::HashMap;
 use cranelift::{
     module::FuncId,
     object::ObjectModule,
-    prelude::{types::I64, EntityRef, FunctionBuilder, InstBuilder, Value, Variable},
+    prelude::{EntityRef, FunctionBuilder, InstBuilder, Value, Variable},
 };
 
 use crate::ast::*;
@@ -62,53 +62,15 @@ impl Visitor<Value> for CraneliftEmitter<'_> {
         let entry = self.ctx.builder.create_block();
         self.ctx.builder.switch_to_block(entry);
 
-        for stmt in program.iter() {
-            stmt.accept(self);
+        for unit in program.iter() {
+            unit.accept(self);
         }
 
         self.ctx.builder.ins().return_(&[]);
         Value::new(0)
     }
 
-    fn visit_statement(&mut self, stmt: &Statement) -> Value {
-        match stmt {
-            Statement::Variable(stmt) => stmt.accept(self),
-            Statement::Print(stmt) => stmt.accept(self),
-        }
-    }
-
-    fn visit_var_statement(&mut self, stmt: &VarStatement) -> Value {
-        let val = stmt.value.accept(self);
-        let var = self.ctx.declare_var(&stmt.name);
-        self.ctx.builder.declare_var(var, I64);
-        self.ctx.builder.def_var(var, val);
-        val
-    }
-
-    fn visit_print_statement(&mut self, stmt: &PrintStatement) -> Value {
-        stmt.value.accept(self)
-    }
-
-    fn visit_expression(&mut self, expr: &Expression) -> Value {
-        match expr {
-            Expression::Integer(num) => self.ctx.builder.ins().iconst(I64, *num),
-            Expression::Variable(name) => {
-                let var = self
-                    .ctx
-                    .get_variable(name)
-                    .unwrap_or_else(|| panic!("Undefined variable: {}", name));
-                self.ctx.builder.use_var(var)
-            }
-            Expression::BinaryOperation { lhs, operator, rhs } => {
-                let (lhs, rhs) = (lhs.accept(self), rhs.accept(self));
-
-                match operator {
-                    Operator::Add => self.ctx.builder.ins().iadd(lhs, rhs),
-                    Operator::Sub => self.ctx.builder.ins().isub(lhs, rhs),
-                    Operator::Mul => self.ctx.builder.ins().imul(lhs, rhs),
-                    Operator::Div => self.ctx.builder.ins().sdiv(lhs, rhs),
-                }
-            }
-        }
+    fn visit_source_unit(&mut self, _source_unit: &SourceUnit) -> Value {
+        todo!()
     }
 }

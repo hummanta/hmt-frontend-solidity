@@ -37,45 +37,26 @@ pub fn parse(source: &str) -> Result<Program, Vec<ParseError>> {
 
 #[cfg(test)]
 mod test {
-    use lalrpop_util::{ErrorRecovery, ParseError as LalrpopParseError};
 
-    use crate::{
-        ast::*,
-        error::{LexicalError, ParseError},
-        parser,
-        token::Token,
-    };
+    use crate::{ast::*, error::ParseError, parser};
 
     #[test]
-    fn test_parse_var() -> Result<(), Vec<ParseError>> {
-        let ast = parser::parse("var x = 42;")?;
+    fn test_parse_pragma() -> Result<(), Vec<ParseError>> {
+        let ast = parser::parse("pragma solidity ^0.8;")?;
 
-        assert_eq!(ast.0.len(), 1);
-
-        let statement = ast.0.first().unwrap();
+        assert_eq!(ast.iter().count(), 1);
+        let unit = ast.iter().next().unwrap();
         assert_eq!(
-            statement,
-            &Statement::Variable(VarStatement {
-                name: String::from("x"),
-                value: Box::new(Expression::Integer(42))
-            })
+            unit,
+            &SourceUnit::PragmaDirective(Box::new(PragmaDirective::Version(
+                Identifier { name: "solidity".to_string() },
+                vec![VersionComparator::Operator {
+                    op: VersionOp::Caret,
+                    version: "0.8".to_string()
+                }]
+            )))
         );
 
         Ok(())
-    }
-
-    #[test]
-    fn test_error_recovery() {
-        let expected: ErrorRecovery<usize, Token, LexicalError> = ErrorRecovery {
-            error: LalrpopParseError::UnrecognizedToken {
-                token: (6, Token::Error, 7),
-                expected: vec!["\"=\"".to_string()],
-            },
-            dropped_tokens: vec![],
-        };
-
-        if let Err(errors) = parser::parse("var x != 42;") {
-            assert_eq!(errors, vec![expected.into()])
-        }
     }
 }

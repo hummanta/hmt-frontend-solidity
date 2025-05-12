@@ -13,78 +13,97 @@
 // limitations under the License.
 
 #[derive(Clone, Debug)]
-pub struct Program(pub Vec<Statement>);
+pub struct Program(pub Vec<SourceUnit>);
 
 impl Program {
     pub fn accept<T, V: Visitor<T>>(&self, visitor: &mut V) -> T {
         visitor.visit_program(self)
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &Statement> {
+    pub fn iter(&self) -> impl Iterator<Item = &SourceUnit> {
         self.0.iter()
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum Statement {
-    Variable(VarStatement),
-    Print(PrintStatement),
+pub enum SourceUnit {
+    /// A pragma directive.
+    PragmaDirective(Box<PragmaDirective>),
 }
 
-impl Statement {
+impl SourceUnit {
     pub fn accept<T, V: Visitor<T>>(&self, visitor: &mut V) -> T {
-        visitor.visit_statement(self)
+        visitor.visit_source_unit(self)
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct VarStatement {
+/// A pragma directive
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum PragmaDirective {
+    /// pragma version =0.5.16;
+    Version(Identifier, Vec<VersionComparator>),
+}
+
+/// A `version` list
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum VersionComparator {
+    /// 0.8.22
+    Plain {
+        /// List of versions: major, minor, patch. minor and patch are optional
+        version: String,
+    },
+    /// =0.5.16
+    Operator {
+        /// Semver comparison operator
+        op: VersionOp,
+        /// version number
+        version: String,
+    },
+    /// foo || bar
+    Or {
+        /// left part
+        left: Box<VersionComparator>,
+        /// right part
+        right: Box<VersionComparator>,
+    },
+    /// 0.7.0 - 0.8.22
+    Range {
+        /// start of range
+        from: String,
+        /// end of range
+        to: String,
+    },
+}
+
+/// Comparison operator
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+pub enum VersionOp {
+    /// `=`
+    Exact,
+    /// `>`
+    Greater,
+    /// `>=`
+    GreaterEq,
+    /// `<`
+    Less,
+    /// `<=`
+    LessEq,
+    /// `~`
+    Tilde,
+    /// `^`
+    Caret,
+    /// `*`
+    Wildcard,
+}
+
+/// An identifier.
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct Identifier {
+    /// The identifier string.
     pub name: String,
-    pub value: Box<Expression>,
-}
-
-impl VarStatement {
-    pub fn accept<T, V: Visitor<T>>(&self, visitor: &mut V) -> T {
-        visitor.visit_var_statement(self)
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct PrintStatement {
-    pub value: Box<Expression>,
-}
-
-impl PrintStatement {
-    pub fn accept<T, V: Visitor<T>>(&self, visitor: &mut V) -> T {
-        visitor.visit_print_statement(self)
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum Expression {
-    Integer(i64),
-    Variable(String),
-    BinaryOperation { lhs: Box<Expression>, operator: Operator, rhs: Box<Expression> },
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum Operator {
-    Add,
-    Sub,
-    Mul,
-    Div,
-}
-
-impl Expression {
-    pub fn accept<T, V: Visitor<T>>(&self, visitor: &mut V) -> T {
-        visitor.visit_expression(self)
-    }
 }
 
 pub trait Visitor<T> {
     fn visit_program(&mut self, program: &Program) -> T;
-    fn visit_statement(&mut self, stmt: &Statement) -> T;
-    fn visit_var_statement(&mut self, stmt: &VarStatement) -> T;
-    fn visit_print_statement(&mut self, stmt: &PrintStatement) -> T;
-    fn visit_expression(&mut self, expr: &Expression) -> T;
+    fn visit_source_unit(&mut self, source_unit: &SourceUnit) -> T;
 }
