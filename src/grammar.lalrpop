@@ -1,0 +1,86 @@
+use crate::ast;
+use crate::error::LexicalError;
+use crate::token::Token;
+use lalrpop_util::ErrorRecovery;
+
+grammar<'err>(errors: &'err mut [ErrorRecovery<usize, Token, LexicalError>]);
+
+pub Program: ast::Program = {
+    Statement* => ast::Program(<>)
+}
+
+pub Statement: ast::Statement = {
+    "var" <name:"identifier"> "=" <value:Expression> ";" => {
+        ast::Statement::Variable(ast::VarStatement { name, value })
+    },
+    "print" <value:Expression> ";" => {
+        ast::Statement::Print(ast::PrintStatement { value })
+    }
+}
+
+pub Expression: Box<ast::Expression> = {
+    #[precedence(level="1")]
+    Term,
+
+    #[precedence(level="2")] #[assoc(side="left")]
+    <lhs:Expression> "*" <rhs:Expression> => {
+        Box::new(ast::Expression::BinaryOperation {
+            lhs,
+            operator: ast::Operator::Mul,
+            rhs
+        })
+    },
+    <lhs:Expression> "/" <rhs:Expression> => {
+        Box::new(ast::Expression::BinaryOperation {
+            lhs,
+            operator: ast::Operator::Div,
+            rhs
+        })
+    },
+
+    #[precedence(level="3")] #[assoc(side="left")]
+    <lhs:Expression> "+" <rhs:Expression> => {
+        Box::new(ast::Expression::BinaryOperation {
+            lhs,
+            operator: ast::Operator::Add,
+            rhs
+        })
+    },
+    <lhs:Expression> "-" <rhs:Expression> => {
+        Box::new(ast::Expression::BinaryOperation {
+            lhs,
+            operator: ast::Operator::Sub,
+            rhs
+        })
+    }
+}
+
+pub Term: Box<ast::Expression> = {
+    <val:"int"> => {
+        Box::new(ast::Expression::Integer(val))
+    },
+    <name:"identifier"> => {
+        Box::new(ast::Expression::Variable(name))
+    },
+    "(" <e:Expression> ")" => e
+}
+
+extern {
+    type Location = usize;
+    type Error = LexicalError;
+
+    enum Token {
+        "var" => Token::Var,
+        "print" => Token::Print,
+        "identifier" => Token::Identifier(<String>),
+        "int" => Token::Integer(<i64>),
+        "(" => Token::LParen,
+        ")" => Token::RParen,
+        "=" => Token::Assign,
+        ";" => Token::Semicolon,
+        "+" => Token::Add,
+        "-" => Token::Sub,
+        "*" => Token::Mul,
+        "/" => Token::Div
+    }
+}

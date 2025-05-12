@@ -1,0 +1,14 @@
+name = "hmt-frontend-solidity"
+homepage = "https://hummanta.github.io/hmt-frontend-solidity"
+repository = "https://github.com/hummanta/hmt-frontend-solidity"
+description = "Parsing the Solidity source code and generating the Cranelift IR"
+language = "Solidity"
+kind = "frontend"
+
+targets = [
+	"x86_64-unknown-linux-gnu",
+	"aarch64-unknown-linux-gnu",
+	"x86_64-apple-darwin",
+	"aarch64-apple-darwin",
+	"x86_64-pc-windows-msvc"
+]

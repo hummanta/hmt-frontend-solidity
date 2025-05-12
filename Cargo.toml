@@ -1,0 +1,18 @@
+[package]
+name = "hmt-frontend-solidity"
+description = "Parsing the Solidity source code and generating the Cranelift IR"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.98"
+ariadne = { version = "0.5.1", features = ["auto-color"] }
+clap = { version = "4.5.37", features = ["derive", "env"] }
+concolor = "0.1.1"
+cranelift = { version = "0.119.0", features = ["module", "object"] }
+lalrpop-util = "0.22.1"
+logos = "0.15.0"
+target-lexicon = "0.13.2"
+
+[build-dependencies]
+lalrpop = "0.22.1"

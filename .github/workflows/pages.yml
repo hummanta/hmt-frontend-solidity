@@ -1,0 +1,80 @@
+name: Publish to GitHub Pages
+
+on:
+  workflow_run:
+    workflows: ["Build Release Binaries"]
+    types:
+      - completed
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        run: rustup update stable
+
+      - name: Install Just
+        uses: taiki-e/install-action@just
+
+      - name: Install pre-requisites
+        run: just install-hmt-manifest
+
+      - name: Determine tag name
+        id: tag
+        run: |
+          echo "Getting tag from workflow_run"
+          echo "TAG_NAME=$(gh release view --json tagName --jq .tagName)" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download checksums files
+        uses: actions/download-artifact@v4
+        with:
+          path: target/artifacts
+          pattern: "*-checksums"
+          merge-multiple: true
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Restore manifests directory from gh-pages (if exists)
+        run: |
+          if git ls-remote --exit-code --heads origin gh-pages; then
+            echo "gh-pages exists, restoring manifests"
+            git fetch origin gh-pages
+            git checkout origin/gh-pages -- manifests
+          else
+            echo "gh-pages does not exist yet. Skipping restore."
+          fi
+
+      - name: Generate manifests
+        run: just manifest ${{ steps.tag.outputs.TAG_NAME }}
+
+      - name: Checkout or create gh-pages branch
+        run: |
+          if git ls-remote --exit-code --heads origin gh-pages; then
+            echo "Found gh-pages branch, fetching and switching."
+            git fetch origin gh-pages
+            git switch gh-pages
+          else
+            echo "gh-pages branch does not exist, creating new orphan branch."
+            git switch --orphan gh-pages
+          fi
+
+      - name: Configure Git user
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit and push changes
+        run: |
+          git add manifests/*
+          git commit -m "Update manifests for ${{ steps.tag.outputs.TAG_NAME }}"
+          git push origin gh-pages
