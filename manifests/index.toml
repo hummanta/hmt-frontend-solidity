@@ -11,8 +11,9 @@ targets = [
     "aarch64-apple-darwin",
     "x86_64-pc-windows-msvc",
 ]
-latest = "v0.1.1"
+latest = "v0.1.2"
 
 [releases]
 "v0.1.1" = "release-v0.1.1.toml"
 "v0.1.0" = "release-v0.1.0.toml"
+"v0.1.2" = "release-v0.1.2.toml"
