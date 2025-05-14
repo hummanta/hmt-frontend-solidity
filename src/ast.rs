@@ -420,7 +420,82 @@ impl NamedArgument {
 
 /// A statement.
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum Statement {}
+pub enum Statement {
+    /// `[unchecked] { <statements>* }`
+    Block {
+        /// Whether this block is `unchecked`.
+        unchecked: bool,
+        /// The statements.
+        statements: Vec<Statement>,
+    },
+    /// `{ <1>,* }`
+    Args(Vec<NamedArgument>),
+    /// `if ({1}) <2> [else <3>]`
+    ///
+    /// Note that the `<1>` expression does not contain the parentheses.
+    If(Expression, Box<Statement>, Option<Box<Statement>>),
+    /// `while ({1}) <2>`
+    ///
+    /// Note that the `<1>` expression does not contain the parentheses.
+    While(Expression, Box<Statement>),
+    /// An [Expression].
+    Expression(Expression),
+    /// `<1> [= <2>];`
+    VariableDefinition(VariableDeclaration, Option<Expression>),
+    /// `for ([1]; [2]; [3]) [4]`
+    ///
+    /// The `[4]` block statement is `None` when the `for` statement ends with a semicolon.
+    For(
+        Option<Box<Statement>>,
+        Option<Box<Expression>>,
+        Option<Box<Expression>>,
+        Option<Box<Statement>>,
+    ),
+    /// `do <1> while ({2});`
+    ///
+    /// Note that the `<2>` expression does not contain the parentheses.
+    DoWhile(Box<Statement>, Expression),
+    /// `continue;`
+    Continue,
+    /// `break;`
+    Break,
+    /// `return [1];`
+    Return(Option<Expression>),
+    /// `revert [1] (<2>,*);`
+    Revert(Option<IdentifierPath>, Vec<Expression>),
+    /// `revert [1] ({ <2>,* });`
+    RevertNamedArgs(Option<IdentifierPath>, Vec<NamedArgument>),
+
+    /// An error occurred during parsing.
+    Error,
+}
+
+impl Statement {
+    pub fn accept<T, V: Visitor<T>>(&self, visitor: &mut V) -> T {
+        visitor.visit_statement(self)
+    }
+}
+
+/// A variable declaration.
+///
+/// `<ty> [storage] <name>`
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct VariableDeclaration {
+    /// The type.
+    pub ty: Expression,
+    /// The optional memory location.
+    pub storage: Option<StorageLocation>,
+    /// The identifier.
+    ///
+    /// This field is `None` only if an error occurred during parsing.
+    pub name: Option<Identifier>,
+}
+
+impl VariableDeclaration {
+    pub fn accept<T, V: Visitor<T>>(&self, visitor: &mut V) -> T {
+        visitor.visit_var_decl(self)
+    }
+}
 
 /// An expression.
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -604,5 +679,7 @@ pub trait Visitor<T> {
     fn visit_annotation(&mut self, ano: &Annotation) -> T;
     fn visit_base(&mut self, base: &Base) -> T;
     fn visit_named_argument(&mut self, arg: &NamedArgument) -> T;
+    fn visit_statement(&mut self, stm: &Statement) -> T;
+    fn visit_var_decl(&mut self, decl: &VariableDeclaration) -> T;
     fn visit_expression(&mut self, exp: &Expression) -> T;
 }

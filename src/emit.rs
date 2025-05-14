@@ -120,6 +120,14 @@ impl Visitor<Value> for CraneliftEmitter<'_> {
         todo!()
     }
 
+    fn visit_statement(&mut self, _stm: &Statement) -> Value {
+        todo!()
+    }
+
+    fn visit_var_decl(&mut self, _decl: &VariableDeclaration) -> Value {
+        todo!()
+    }
+
     fn visit_expression(&mut self, _exp: &Expression) -> Value {
         todo!()
     }

@@ -169,6 +169,90 @@ FunctionTy: FunctionTy = {
 
 BlockStatementOrSemiColon: Option<Statement> = {
     ";" => None,
+    BlockStatement => Some(<>),
+}
+
+BlockStatement: Statement = {
+    "{" <statements:Statement*> "}" => {
+        Statement::Block { unchecked: false, statements }
+    },
+    "{" <v:CommaOne<NamedArgument>> "}" => Statement::Args(v),
+}
+
+Statement: Statement = {
+    OpenStatement,
+    ClosedStatement,
+    <false_token:!> => {
+        errors.push(false_token);
+        Statement::Error
+    },
+}
+
+OpenStatement: Statement = {
+    "if" "(" <cond:Expression> ")" <body:Statement> => {
+        Statement::If(cond, Box::new(body), None)
+    },
+    "if" "(" <cond:Expression> ")" <body:ClosedStatement> "else" <o:OpenStatement> => {
+        Statement::If(cond, Box::new(body), Some(Box::new(o)))
+    },
+    "for" "(" <b:SimpleStatement?> ";" <c:Expression?> ";" <n:Expression?> ")" <block:OpenStatement> => {
+        Statement::For(b.map(Box::new), c.map(Box::new), n.map(Box::new), Some(Box::new(block)))
+    },
+    "while" "(" <e:Expression> ")" <b:OpenStatement> => {
+        Statement::While(e, Box::new(b))
+    }
+}
+
+ClosedStatement: Statement = {
+    NonIfStatement,
+    "if" "(" <cond:Expression> ")" <body:ClosedStatement> "else" <o:ClosedStatement> => {
+        Statement::If(cond, Box::new(body), Some(Box::new(o)))
+    },
+    "while" "(" <e:Expression> ")" <b:ClosedStatement> => {
+        Statement::While(e, Box::new(b))
+    },
+    "for" "(" <b:SimpleStatement?> ";" <c:Expression?> ";" <n:Expression?> ")" <block:ClosedStatement> => {
+        Statement::For(b.map(Box::new), c.map(Box::new), n.map(Box::new), Some(Box::new(block)))
+    },
+    "for" "(" <b:SimpleStatement?> ";" <c:Expression?> ";" <n:Expression?> ")" ";" => {
+        Statement::For(b.map(Box::new), c.map(Box::new), n.map(Box::new), None)
+    }
+}
+
+NonIfStatement: Statement = {
+    BlockStatement => <>,
+    "unchecked" "{" <statements:Statement*> "}" => {
+        Statement::Block { unchecked: true, statements }
+    },
+    <SimpleStatement> ";" => <>,
+    "do" <b:Statement> "while" "(" <e:Expression> ")" ";" => {
+        Statement::DoWhile(Box::new(b), e)
+    },
+    "continue" ";" => Statement::Continue,
+    "break" ";" => Statement::Break,
+    "return" ";" => Statement::Return(None),
+    "return" <e:Expression> ";" => Statement::Return(Some(e)),
+    "revert" <error:SolIdentifierPath?> "(" <v:Comma<Expression>> ")" ";" => {
+        Statement::Revert(error, v)
+    },
+    "revert" <error:SolIdentifierPath?> "(" "{" <v:Comma<NamedArgument>> "}" ")" ";" => {
+        Statement::RevertNamedArgs(error, v)
+    },
+}
+
+VariableDeclaration: VariableDeclaration = {
+    <ty:Precedence0> <storage:StorageLocation?> <name:SolIdentifierOrError> <r:@R> => {
+        VariableDeclaration { ty, storage, name }
+    }
+}
+
+SimpleStatement: Statement = {
+    <v:VariableDeclaration> <e:("=" <Expression>)?> => {
+        Statement::VariableDefinition(v, e)
+    },
+    <e:Expression> => {
+        Statement::Expression(e)
+    }
 }
 
 ParameterList: Vec<Option<Parameter>> = {
