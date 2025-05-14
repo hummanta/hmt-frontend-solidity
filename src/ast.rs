@@ -32,6 +32,12 @@ pub enum SourceUnit {
 
     /// A contract definition.
     ContractDefinition(Box<ContractDefinition>),
+
+    /// A variable definition.
+    VariableDefinition(Box<VariableDefinition>),
+
+    /// A stray semicolon.
+    StraySemicolon,
 }
 
 impl SourceUnit {
@@ -133,7 +139,97 @@ pub enum ContractTy {
 
 /// A contract part.
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum ContractPart {}
+pub enum ContractPart {
+    /// A variable definition.
+    VariableDefinition(Box<VariableDefinition>),
+
+    /// A stray semicolon.
+    StraySemicolon,
+}
+
+impl ContractPart {
+    pub fn accept<T, V: Visitor<T>>(&self, visitor: &mut V) -> T {
+        visitor.visit_contract_part(self)
+    }
+}
+
+/// A variable definition.
+///
+/// `<ty> <attrs>* <name> [= <initializer>]`
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct VariableDefinition {
+    /// The type.
+    pub ty: Expression,
+    /// The list of variable attributes.
+    pub attrs: Vec<VariableAttribute>,
+    /// The identifier.
+    ///
+    /// This field is `None` only if an error occurred during parsing.
+    pub name: Option<Identifier>,
+    /// The optional initializer.
+    pub initializer: Option<Expression>,
+}
+
+impl VariableDefinition {
+    pub fn accept<T, V: Visitor<T>>(&self, visitor: &mut V) -> T {
+        visitor.visit_variable(self)
+    }
+}
+
+/// A variable attribute.
+#[derive(Debug, PartialEq, Eq, Clone)]
+#[repr(u8)] // for cmp; order of variants is important
+pub enum VariableAttribute {
+    /// The visibility.
+    ///
+    /// Only used for storage variables.
+    Visibility(Visibility),
+
+    /// `constant`
+    Constant,
+
+    /// `immutable`
+    Immutable,
+
+    /// `ovveride(<1>,*)`
+    Override(Vec<IdentifierPath>),
+
+    /// Storage type.
+    StorageType(StorageType),
+}
+
+/// Function visibility.
+///
+/// Deprecated for [FunctionTy] other than `Function`.
+#[derive(Debug, PartialEq, Eq, Clone)]
+#[repr(u8)] // for cmp; order of variants is important
+pub enum Visibility {
+    /// `external`
+    External,
+
+    /// `public`
+    Public,
+
+    /// `internal`
+    Internal,
+
+    /// `private`
+    Private,
+}
+
+/// Soroban storage types.
+#[derive(Debug, PartialEq, Eq, Clone)]
+#[repr(u8)] // for cmp; order of variants is important
+pub enum StorageType {
+    /// `Temporary`
+    Temporary,
+
+    /// `persistent`
+    Persistent,
+
+    /// `Instance`
+    Instance,
+}
 
 /// An expression.
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -296,10 +392,21 @@ pub struct Identifier {
     pub name: String,
 }
 
+/// A qualified identifier.
+///
+/// `<identifiers>.*`
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct IdentifierPath {
+    /// The list of identifiers.
+    pub identifiers: Vec<Identifier>,
+}
+
 pub trait Visitor<T> {
     fn visit_program(&mut self, program: &Program) -> T;
     fn visit_source_unit(&mut self, source_unit: &SourceUnit) -> T;
     fn visit_pragma(&mut self, pragma: &PragmaDirective) -> T;
     fn visit_contract(&mut self, contract: &ContractDefinition) -> T;
+    fn visit_contract_part(&mut self, part: &ContractPart) -> T;
+    fn visit_variable(&mut self, var: &VariableDefinition) -> T;
     fn visit_expression(&mut self, exp: &Expression) -> T;
 }

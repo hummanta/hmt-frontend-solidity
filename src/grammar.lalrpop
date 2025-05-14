@@ -12,6 +12,8 @@ pub Program: Program = {
 SourceUnit: SourceUnit = {
     PragmaDirective => SourceUnit::PragmaDirective(<>.into()),
     ContractDefinition => SourceUnit::ContractDefinition(<>),
+    VariableDefinition => SourceUnit::VariableDefinition(<>),
+    ";" => SourceUnit::StraySemicolon,
 }
 
 PragmaDirective: PragmaDirective = {
@@ -50,13 +52,54 @@ VersionOp: VersionOp = {
 }
 
 ContractDefinition: Box<ContractDefinition> = {
-    <ty:ContractTy> <name:Identifier> "{" "}" => {
-        Box::new(ContractDefinition{ ty, name, parts: Vec::new() })
+    <ty:ContractTy> <name:Identifier> "{" <parts:(<ContractPart>)*> "}" => {
+        Box::new(ContractDefinition{ ty, name, parts })
     }
 }
 
 ContractTy: ContractTy = {
     "contract" => ContractTy::Contract,
+}
+
+ContractPart: ContractPart = {
+    VariableDefinition => ContractPart::VariableDefinition(<>),
+    ";" => ContractPart::StraySemicolon,
+}
+
+VariableDefinition: Box<VariableDefinition> = {
+    <ty:NoFunctionTyPrecedence0> <attrs:VariableAttribute*> <name:SolIdentifierOrError> <e:("=" <Expression>)?> ";" => {
+        Box::new(VariableDefinition{ ty, attrs, name, initializer: e})
+    },
+    <ty:NoFunctionTyPrecedence0> <attrs:VariableAttribute*> <name:Identifier> <false_token:!> ";" => {
+        errors.push (false_token);
+        Box::new(VariableDefinition{
+            ty, attrs, name: Some(name), initializer: None,
+        })
+    },
+}
+
+VariableAttribute: VariableAttribute = {
+    Visibility => VariableAttribute::Visibility(<>),
+    StorageType => VariableAttribute::StorageType(<>),
+    "constant" => VariableAttribute::Constant,
+    "immutable" => VariableAttribute::Immutable,
+    "override" => VariableAttribute::Override(Vec::new()),
+    "override" "(" <list:CommaOne<SolIdentifierPath>> ")" => {
+        VariableAttribute::Override(list)
+    }
+}
+
+Visibility: Visibility = {
+    "public" => Visibility::Public,
+    "external" => Visibility::External,
+    "internal" => Visibility::Internal,
+    "private" => Visibility::Private
+}
+
+StorageType: StorageType = {
+    "persistent" => StorageType::Persistent,
+    "temporary" => StorageType::Temporary,
+    "instance" => StorageType::Instance,
 }
 
 Expression: Expression = {
@@ -240,6 +283,22 @@ SolNoRevertIdentifier: Identifier = {
     "leave" => Identifier{name: "leave".to_string()},
     "case" => Identifier{name: "case".to_string()},
     "default" => Identifier{name: "default".to_string()},
+}
+
+SolIdentifierOrError: Option<Identifier> = {
+    Identifier => Some(<>),
+    ! => {
+        errors.push(<>);
+        None
+    }
+}
+
+SolIdentifierPath: IdentifierPath = {
+    <e:Identifier> <v:("." <Identifier>)*> => {
+        let mut v = v;
+        v.insert(0, e);
+        IdentifierPath { identifiers: v }
+    }
 }
 
 Comma<T>: Vec<T> = {
