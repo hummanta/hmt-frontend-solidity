@@ -27,12 +27,20 @@ pub enum Token {
     #[regex(r"-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?", |lex| lex.slice().parse::<f64>().unwrap())]
     Number(f64),
 
-    // Keywords
-    #[token("pragma")]
-    Pragma,
-
     #[token(";")]
     Semicolon,
+
+    #[token("{")]
+    OpenCurlyBrace,
+
+    #[token("}")]
+    CloseCurlyBrace,
+
+    #[token("(")]
+    OpenParenthesis,
+
+    #[token(")")]
+    CloseParenthesis,
 
     #[token("=")]
     Assign,
@@ -64,8 +72,11 @@ pub enum Token {
     #[token("~")]
     BitwiseNot,
 
-    #[token(".")]
-    Member,
+    #[token("pragma")]
+    Pragma,
+
+    #[token("contract")]
+    Contract,
 
     Error,
 }

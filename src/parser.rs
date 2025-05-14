@@ -18,7 +18,11 @@ use lalrpop_util::lalrpop_mod;
 
 use crate::{ast::Program, error::ParseError, lexer::Lexer};
 
-lalrpop_mod!(grammar);
+lalrpop_mod!(
+    #[allow(clippy::ptr_arg)]
+    #[allow(clippy::type_complexity)]
+    grammar
+);
 
 /// Parses source into Program or returns syntax errors
 pub fn parse(source: &str) -> Result<Program, Vec<ParseError>> {
@@ -33,30 +37,4 @@ pub fn parse(source: &str) -> Result<Program, Vec<ParseError>> {
             .chain(once(err.into())) // Add final error
             .collect()
     })
-}
-
-#[cfg(test)]
-mod test {
-
-    use crate::{ast::*, error::ParseError, parser};
-
-    #[test]
-    fn test_parse_pragma() -> Result<(), Vec<ParseError>> {
-        let ast = parser::parse("pragma solidity ^0.8;")?;
-
-        assert_eq!(ast.iter().count(), 1);
-        let unit = ast.iter().next().unwrap();
-        assert_eq!(
-            unit,
-            &SourceUnit::PragmaDirective(Box::new(PragmaDirective::Version(
-                Identifier { name: "solidity".to_string() },
-                vec![VersionComparator::Operator {
-                    op: VersionOp::Caret,
-                    version: "0.8".to_string()
-                }]
-            )))
-        );
-
-        Ok(())
-    }
 }

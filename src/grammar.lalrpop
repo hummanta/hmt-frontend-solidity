@@ -3,7 +3,7 @@ use crate::error::LexicalError;
 use crate::token::Token;
 use lalrpop_util::ErrorRecovery;
 
-grammar<'err>(errors: &'err mut [ErrorRecovery<usize, Token, LexicalError>]);
+grammar<'err>(errors: &'err mut Vec<ErrorRecovery<usize, Token, LexicalError>>);
 
 pub Program: Program = {
     SourceUnit* => Program(<>)
@@ -11,11 +11,11 @@ pub Program: Program = {
 
 SourceUnit: SourceUnit = {
     PragmaDirective => SourceUnit::PragmaDirective(<>.into()),
+    ContractDefinition => SourceUnit::ContractDefinition(<>),
 }
 
-
 PragmaDirective: PragmaDirective = {
-    "pragma" <i:SolIdentifier> <comp:VersionComparator1+> ";" => {
+    "pragma" <i:Identifier> <comp:VersionComparator1+> ";" => {
         PragmaDirective::Version(i, comp)
     }
 }
@@ -30,8 +30,8 @@ VersionComparator1: VersionComparator = {
 
 VersionComparator: VersionComparator = {
     <version:Version> => VersionComparator::Plain {version},
-    <op:VersionOp> <version:Version> => VersionComparator::Operator {op, version},
-    <from:Version> "-" <to:Version> => VersionComparator::Range {from, to},
+    <op:VersionOp> <version:Version> => VersionComparator::Operator { op, version },
+    <from:Version> "-" <to:Version> => VersionComparator::Range { from, to },
 }
 
 Version: String = {
@@ -49,12 +49,18 @@ VersionOp: VersionOp = {
     "*" => VersionOp::Wildcard,
 }
 
-Identifier: Identifier = {
-    <n:"identifier"> => Identifier{name: n.to_string()}
+ContractDefinition: Box<ContractDefinition> = {
+    <ty:ContractTy> <name:Identifier> "{" "}" => {
+        Box::new(ContractDefinition{ ty, name, parts: Vec::new() })
+    }
 }
 
-SolIdentifier: Identifier = {
-    <n:"identifier"> => Identifier{name: n.to_string()},
+ContractTy: ContractTy = {
+    "contract" => ContractTy::Contract,
+}
+
+Identifier: Identifier = {
+    <n:identifier> => Identifier{ name: n.to_string() }
 }
 
 extern {
@@ -62,10 +68,15 @@ extern {
     type Error = LexicalError;
 
     enum Token {
-        "identifier" => Token::Identifier(<String>),
+        identifier => Token::Identifier(<String>),
         number => Token::Number(<f64>),
 
         ";" => Token::Semicolon,
+        "{" => Token::OpenCurlyBrace,
+        "}" => Token::CloseCurlyBrace,
+        "(" => Token::OpenParenthesis,
+        ")" => Token::CloseParenthesis,
+
         "=" => Token::Assign,
         "||" => Token::Or,
         "<" => Token::Less,
@@ -76,8 +87,8 @@ extern {
         "-" => Token::Subtract,
         "*" => Token::Mul,
         "~" => Token::BitwiseNot,
-        "." => Token::Member,
 
         "pragma" => Token::Pragma,
+        "contract" => Token::Contract,
     }
 }

@@ -70,7 +70,18 @@ impl Visitor<Value> for CraneliftEmitter<'_> {
         Value::new(0)
     }
 
-    fn visit_source_unit(&mut self, _source_unit: &SourceUnit) -> Value {
+    fn visit_source_unit(&mut self, source_unit: &SourceUnit) -> Value {
+        match source_unit {
+            SourceUnit::PragmaDirective(pragma) => pragma.accept(self),
+            SourceUnit::ContractDefinition(contract) => contract.accept(self),
+        }
+    }
+
+    fn visit_pragma(&mut self, _pragma: &PragmaDirective) -> Value {
+        todo!()
+    }
+
+    fn visit_contract(&mut self, _contract: &ContractDefinition) -> Value {
         todo!()
     }
 }

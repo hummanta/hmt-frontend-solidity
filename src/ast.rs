@@ -29,6 +29,9 @@ impl Program {
 pub enum SourceUnit {
     /// A pragma directive.
     PragmaDirective(Box<PragmaDirective>),
+
+    /// A contract definition.
+    ContractDefinition(Box<ContractDefinition>),
 }
 
 impl SourceUnit {
@@ -42,6 +45,12 @@ impl SourceUnit {
 pub enum PragmaDirective {
     /// pragma version =0.5.16;
     Version(Identifier, Vec<VersionComparator>),
+}
+
+impl PragmaDirective {
+    pub fn accept<T, V: Visitor<T>>(&self, visitor: &mut V) -> T {
+        visitor.visit_pragma(self)
+    }
 }
 
 /// A `version` list
@@ -96,6 +105,36 @@ pub enum VersionOp {
     Wildcard,
 }
 
+/// A contract definition.
+///
+/// `<ty> <name> { <parts>,* }`
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct ContractDefinition {
+    /// The contract type.
+    pub ty: ContractTy,
+    /// The identifier.
+    pub name: Identifier,
+    /// The list of contract parts.
+    pub parts: Vec<ContractPart>,
+}
+
+impl ContractDefinition {
+    pub fn accept<T, V: Visitor<T>>(&self, visitor: &mut V) -> T {
+        visitor.visit_contract(self)
+    }
+}
+
+/// The contract type.
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum ContractTy {
+    /// `contract`
+    Contract,
+}
+
+/// A contract part.
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum ContractPart {}
+
 /// An identifier.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Identifier {
@@ -106,4 +145,6 @@ pub struct Identifier {
 pub trait Visitor<T> {
     fn visit_program(&mut self, program: &Program) -> T;
     fn visit_source_unit(&mut self, source_unit: &SourceUnit) -> T;
+    fn visit_pragma(&mut self, pragma: &PragmaDirective) -> T;
+    fn visit_contract(&mut self, contract: &ContractDefinition) -> T;
 }
