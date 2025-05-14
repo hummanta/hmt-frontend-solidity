@@ -1,0 +1,21 @@
+version = "v0.1.4"
+
+[artifacts.x86_64-apple-darwin]
+url = "https://github.com/hummanta/hmt-frontend-solidity/releases/download/v0.1.4/hmt-frontend-solidity-v0.1.4-x86_64-apple-darwin.tar.gz"
+hash = "bee51c20d1ae21b003db88ab51df3e4929a0cf9fd99b5351c4304d32b4885542"
+
+[artifacts.x86_64-unknown-linux-gnu]
+url = "https://github.com/hummanta/hmt-frontend-solidity/releases/download/v0.1.4/hmt-frontend-solidity-v0.1.4-x86_64-unknown-linux-gnu.tar.gz"
+hash = "a78617444cfa4fdf16d776de76920354465f15d7c4b0f63d83614a20fe92d513"
+
+[artifacts.aarch64-apple-darwin]
+url = "https://github.com/hummanta/hmt-frontend-solidity/releases/download/v0.1.4/hmt-frontend-solidity-v0.1.4-aarch64-apple-darwin.tar.gz"
+hash = "3d37990ea078a32d98ab993182eb5aaee729d35e5bf2da34f064c6dbd312517f"
+
+[artifacts.x86_64-pc-windows-msvc]
+url = "https://github.com/hummanta/hmt-frontend-solidity/releases/download/v0.1.4/hmt-frontend-solidity-v0.1.4-x86_64-pc-windows-msvc.tar.gz"
+hash = "7b9f35ec56057fc8eaacb96ef6babb4782c94f6c486235bd9978184cf77e7656"
+
+[artifacts.aarch64-unknown-linux-gnu]
+url = "https://github.com/hummanta/hmt-frontend-solidity/releases/download/v0.1.4/hmt-frontend-solidity-v0.1.4-aarch64-unknown-linux-gnu.tar.gz"
+hash = "eea8756bc116dadda97dc1919893904dd3f76e513b930e8dda5ac6ebf146328d"
