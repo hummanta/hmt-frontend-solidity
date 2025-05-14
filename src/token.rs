@@ -27,7 +27,7 @@ pub enum Token {
     #[regex("@[_a-zA-Z][_0-9a-zA-Z]*", |lex| lex.slice().to_string())]
     Annotation(String),
 
-    #[regex(r#""[_a-zA-Z][_0-9a-zA-Z]*""#, |lex| lex.slice().to_string())]
+    #[regex(r#"(unicode)?"[_a-zA-Z][_0-9a-zA-Z]*""#, |lex| lex.slice().to_string())]
     StringLiteral(String),
 
     #[regex(r#"hex["']([0-9a-fA-F]{2}(_?[0-9a-fA-F]{2})*)*["']"#, |lex| lex.slice().to_string())]
@@ -40,6 +40,8 @@ pub enum Token {
     Number(f64),
 
     RationalNumber(String),
+
+    #[regex(r"0x([0-9a-fA-F]{2}(_?[0-9a-fA-F]{2})*)*", |lex| lex.slice().to_string())]
     HexNumber(String),
 
     #[token(";")]

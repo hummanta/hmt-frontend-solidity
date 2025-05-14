@@ -84,4 +84,8 @@ impl Visitor<Value> for CraneliftEmitter<'_> {
     fn visit_contract(&mut self, _contract: &ContractDefinition) -> Value {
         todo!()
     }
+
+    fn visit_expression(&mut self, _exp: &Expression) -> Value {
+        todo!()
+    }
 }

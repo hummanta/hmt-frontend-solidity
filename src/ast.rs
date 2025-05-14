@@ -135,6 +135,160 @@ pub enum ContractTy {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum ContractPart {}
 
+/// An expression.
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum Expression {
+    /// `<1>++`
+    PostIncrement(Box<Expression>),
+    /// `<1>--`
+    PostDecrement(Box<Expression>),
+    /// `new <1>`
+    New(Box<Expression>),
+    /// `<1>\[ [2] \]`
+    ArraySubscript(Box<Expression>, Option<Box<Expression>>),
+    /// `<1>\[ [2] : [3] \]`
+    ArraySlice(Box<Expression>, Option<Box<Expression>>, Option<Box<Expression>>),
+    /// `(<1>)`
+    Parenthesis(Box<Expression>),
+    /// `<1>.<2>`
+    MemberAccess(Box<Expression>, Identifier),
+    /// `!<1>`
+    Not(Box<Expression>),
+    /// `~<1>`
+    BitwiseNot(Box<Expression>),
+    /// `delete <1>`
+    Delete(Box<Expression>),
+    /// `++<1>`
+    PreIncrement(Box<Expression>),
+    /// `--<1>`
+    PreDecrement(Box<Expression>),
+    /// `+<1>`
+    ///
+    /// Note that this isn't actually supported by Solidity.
+    UnaryPlus(Box<Expression>),
+    /// `-<1>`
+    Negate(Box<Expression>),
+
+    /// `<1> ** <2>`
+    Power(Box<Expression>, Box<Expression>),
+    /// `<1> * <2>`
+    Multiply(Box<Expression>, Box<Expression>),
+    /// `<1> / <2>`
+    Divide(Box<Expression>, Box<Expression>),
+    /// `<1> % <2>`
+    Modulo(Box<Expression>, Box<Expression>),
+    /// `<1> + <2>`
+    Add(Box<Expression>, Box<Expression>),
+    /// `<1> - <2>`
+    Subtract(Box<Expression>, Box<Expression>),
+    /// `<1> << <2>`
+    ShiftLeft(Box<Expression>, Box<Expression>),
+    /// `<1> >> <2>`
+    ShiftRight(Box<Expression>, Box<Expression>),
+    /// `<1> & <2>`
+    BitwiseAnd(Box<Expression>, Box<Expression>),
+    /// `<1> ^ <2>`
+    BitwiseXor(Box<Expression>, Box<Expression>),
+    /// `<1> | <2>`
+    BitwiseOr(Box<Expression>, Box<Expression>),
+    /// `<1> < <2>`
+    Less(Box<Expression>, Box<Expression>),
+    /// `<1> > <2>`
+    More(Box<Expression>, Box<Expression>),
+    /// `<1> <= <2>`
+    LessEqual(Box<Expression>, Box<Expression>),
+    /// `<1> >= <2>`
+    MoreEqual(Box<Expression>, Box<Expression>),
+    /// `<1> == <2>`
+    Equal(Box<Expression>, Box<Expression>),
+    /// `<1> != <2>`
+    NotEqual(Box<Expression>, Box<Expression>),
+    /// `<1> && <2>`
+    And(Box<Expression>, Box<Expression>),
+    /// `<1> || <2>`
+    Or(Box<Expression>, Box<Expression>),
+    /// `<1> ? <2> : <3>`
+    ///
+    /// AKA ternary operator.
+    ConditionalOperator(Box<Expression>, Box<Expression>, Box<Expression>),
+    /// `<1> = <2>`
+    Assign(Box<Expression>, Box<Expression>),
+    /// `<1> |= <2>`
+    AssignOr(Box<Expression>, Box<Expression>),
+    /// `<1> &= <2>`
+    AssignAnd(Box<Expression>, Box<Expression>),
+    /// `<1> ^= <2>`
+    AssignXor(Box<Expression>, Box<Expression>),
+    /// `<1> <<= <2>`
+    AssignShiftLeft(Box<Expression>, Box<Expression>),
+    /// `<1> >>= <2>`
+    AssignShiftRight(Box<Expression>, Box<Expression>),
+    /// `<1> += <2>`
+    AssignAdd(Box<Expression>, Box<Expression>),
+    /// `<1> -= <2>`
+    AssignSubtract(Box<Expression>, Box<Expression>),
+    /// `<1> *= <2>`
+    AssignMultiply(Box<Expression>, Box<Expression>),
+    /// `<1> /= <2>`
+    AssignDivide(Box<Expression>, Box<Expression>),
+    /// `<1> %= <2>`
+    AssignModulo(Box<Expression>, Box<Expression>),
+
+    /// `true` or `false`
+    BoolLiteral(bool),
+    /// ``
+    NumberLiteral(String, Option<Identifier>),
+    /// ``
+    RationalNumberLiteral(String, Option<Identifier>),
+    /// ``
+    HexNumberLiteral(String, Option<Identifier>),
+    /// `<1>+`. See [StringLiteral].
+    StringLiteral(Vec<StringLiteral>),
+    /// `<1>+`. See [HexLiteral].
+    HexLiteral(Vec<HexLiteral>),
+    /// `0x[a-fA-F0-9]{40}`
+    ///
+    /// This [should be correctly checksummed][ref],
+    /// but it currently isn't being enforced in the parser.
+    ///
+    /// [ref]: https://docs.soliditylang.org/en/latest/types.html#address-literals
+    AddressLiteral(String),
+    /// Any valid [Identifier].
+    Variable(Identifier),
+    /// `\[ <1>.* \]`
+    ArrayLiteral(Vec<Expression>),
+}
+
+impl Expression {
+    pub fn accept<T, V: Visitor<T>>(&self, visitor: &mut V) -> T {
+        visitor.visit_expression(self)
+    }
+}
+
+/// A string literal.
+///
+/// `[unicode]"<string>"`
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct StringLiteral {
+    /// Whether this is a unicode string.
+    pub unicode: bool,
+    /// The string literal.
+    ///
+    /// Does not contain the quotes or the `unicode` prefix.
+    pub string: String,
+}
+
+/// A hex literal.
+///
+/// `hex"<literal>"`
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct HexLiteral {
+    /// The hex literal.
+    ///
+    /// Contains the `hex` prefix.
+    pub hex: String,
+}
+
 /// An identifier.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Identifier {
@@ -147,4 +301,5 @@ pub trait Visitor<T> {
     fn visit_source_unit(&mut self, source_unit: &SourceUnit) -> T;
     fn visit_pragma(&mut self, pragma: &PragmaDirective) -> T;
     fn visit_contract(&mut self, contract: &ContractDefinition) -> T;
+    fn visit_expression(&mut self, exp: &Expression) -> T;
 }
