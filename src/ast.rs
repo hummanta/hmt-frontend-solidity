@@ -36,6 +36,9 @@ pub enum SourceUnit {
     /// A variable definition.
     VariableDefinition(Box<VariableDefinition>),
 
+    /// A function definition.
+    FunctionDefinition(Box<FunctionDefinition>),
+
     /// A stray semicolon.
     StraySemicolon,
 }
@@ -143,6 +146,9 @@ pub enum ContractPart {
     /// A variable definition.
     VariableDefinition(Box<VariableDefinition>),
 
+    /// A function definition.
+    FunctionDefinition(Box<FunctionDefinition>),
+
     /// A stray semicolon.
     StraySemicolon,
 }
@@ -230,6 +236,191 @@ pub enum StorageType {
     /// `Instance`
     Instance,
 }
+
+/// A function definition.
+///
+/// `<ty> [name](<params>,*) [attributes] [returns] [body]`
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct FunctionDefinition {
+    /// The function type.
+    pub ty: FunctionTy,
+    /// The optional identifier.
+    ///
+    /// This can be `None` for old style fallback functions.
+    pub name: Option<Identifier>,
+    /// The parameter list.
+    pub params: ParameterList,
+    /// The function attributes.
+    pub attributes: Vec<FunctionAttribute>,
+    /// The return parameter list.
+    pub returns: ParameterList,
+    /// The function body.
+    ///
+    /// If `None`, the declaration ended with a semicolon.
+    pub body: Option<Statement>,
+}
+
+impl FunctionDefinition {
+    pub fn accept<T, V: Visitor<T>>(&self, visitor: &mut V) -> T {
+        visitor.visit_function(self)
+    }
+}
+
+/// A function's type.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum FunctionTy {
+    /// `constructor`
+    Constructor,
+
+    /// `function`
+    Function,
+
+    /// `fallback`
+    Fallback,
+
+    /// `receive`
+    Receive,
+
+    /// `modifier`
+    Modifier,
+}
+
+/// Type alias for a list of function parameters.
+pub type ParameterList = Vec<Option<Parameter>>;
+
+/// A parameter.
+///
+/// `<ty> [storage] <name>`
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct Parameter {
+    /// An optional annotation '@annotation'.
+    pub annotation: Option<Annotation>,
+    /// The type.
+    pub ty: Expression,
+    /// The optional memory location.
+    pub storage: Option<StorageLocation>,
+    /// The optional identifier.
+    pub name: Option<Identifier>,
+}
+
+impl Parameter {
+    pub fn accept<T, V: Visitor<T>>(&self, visitor: &mut V) -> T {
+        visitor.visit_parameter(self)
+    }
+}
+
+/// An annotation.
+///
+/// `@<id>(<value>)`
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct Annotation {
+    /// The identifier.
+    pub id: Identifier,
+    /// The value.
+    pub value: Option<Expression>,
+}
+
+impl Annotation {
+    pub fn accept<T, V: Visitor<T>>(&self, visitor: &mut V) -> T {
+        visitor.visit_annotation(self)
+    }
+}
+
+/// Dynamic type location.
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum StorageLocation {
+    /// `memory`
+    Memory,
+
+    /// `storage`
+    Storage,
+
+    /// `calldata`
+    Calldata,
+}
+
+/// A function attribute.
+#[derive(Debug, PartialEq, Eq, Clone)]
+#[repr(u8)] // for cmp; order of variants is important
+pub enum FunctionAttribute {
+    /// Visibility attribute.
+    Visibility(Visibility),
+
+    /// Mutability attribute.
+    Mutability(Mutability),
+
+    /// `virtual`
+    Virtual,
+
+    /// `immutable`
+    Immutable,
+
+    /// `override[(<identifier path>,*)]`
+    Override(Vec<IdentifierPath>),
+
+    /// A modifier or constructor invocation.
+    BaseOrModifier(Base),
+
+    /// An error occurred during parsing.
+    Error,
+}
+
+/// Function mutability.
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum Mutability {
+    /// `pure`
+    Pure,
+
+    /// `view`
+    View,
+
+    /// `constant`
+    Constant,
+
+    /// `payable`
+    Payable,
+}
+
+/// A function modifier invocation (see [FunctionAttribute])
+/// or a contract inheritance specifier (see [ContractDefinition]).
+///
+/// Both have the same semantics:
+///
+/// `<name>[(<args>,*)]`
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct Base {
+    /// The identifier path.
+    pub name: IdentifierPath,
+    /// The optional arguments.
+    pub args: Option<Vec<Expression>>,
+}
+
+impl Base {
+    pub fn accept<T, V: Visitor<T>>(&self, visitor: &mut V) -> T {
+        visitor.visit_base(self)
+    }
+}
+
+/// A named argument.
+///
+/// `<name>: <expr>`
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct NamedArgument {
+    /// The identifier.
+    pub name: Identifier,
+    /// The value.
+    pub expr: Expression,
+}
+
+impl NamedArgument {
+    pub fn accept<T, V: Visitor<T>>(&self, visitor: &mut V) -> T {
+        visitor.visit_named_argument(self)
+    }
+}
+
+/// A statement.
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum Statement {}
 
 /// An expression.
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -408,5 +599,10 @@ pub trait Visitor<T> {
     fn visit_contract(&mut self, contract: &ContractDefinition) -> T;
     fn visit_contract_part(&mut self, part: &ContractPart) -> T;
     fn visit_variable(&mut self, var: &VariableDefinition) -> T;
+    fn visit_function(&mut self, func: &FunctionDefinition) -> T;
+    fn visit_parameter(&mut self, param: &Parameter) -> T;
+    fn visit_annotation(&mut self, ano: &Annotation) -> T;
+    fn visit_base(&mut self, base: &Base) -> T;
+    fn visit_named_argument(&mut self, arg: &NamedArgument) -> T;
     fn visit_expression(&mut self, exp: &Expression) -> T;
 }

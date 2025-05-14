@@ -75,6 +75,7 @@ impl Visitor<Value> for CraneliftEmitter<'_> {
             SourceUnit::PragmaDirective(pragma) => pragma.accept(self),
             SourceUnit::ContractDefinition(contract) => contract.accept(self),
             SourceUnit::VariableDefinition(var) => var.accept(self),
+            SourceUnit::FunctionDefinition(func) => func.accept(self),
             SourceUnit::StraySemicolon => Value::from_u32(0),
         }
     }
@@ -90,11 +91,32 @@ impl Visitor<Value> for CraneliftEmitter<'_> {
     fn visit_contract_part(&mut self, part: &ContractPart) -> Value {
         match part {
             ContractPart::VariableDefinition(var) => var.accept(self),
+            ContractPart::FunctionDefinition(func) => func.accept(self),
             ContractPart::StraySemicolon => Value::from_u32(0),
         }
     }
 
     fn visit_variable(&mut self, _var: &VariableDefinition) -> Value {
+        todo!()
+    }
+
+    fn visit_function(&mut self, _func: &FunctionDefinition) -> Value {
+        todo!()
+    }
+
+    fn visit_parameter(&mut self, _param: &Parameter) -> Value {
+        todo!()
+    }
+
+    fn visit_annotation(&mut self, _ano: &Annotation) -> Value {
+        todo!()
+    }
+
+    fn visit_base(&mut self, _base: &Base) -> Value {
+        todo!()
+    }
+
+    fn visit_named_argument(&mut self, _arg: &NamedArgument) -> Value {
         todo!()
     }
 

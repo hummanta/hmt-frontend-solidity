@@ -13,6 +13,7 @@ SourceUnit: SourceUnit = {
     PragmaDirective => SourceUnit::PragmaDirective(<>.into()),
     ContractDefinition => SourceUnit::ContractDefinition(<>),
     VariableDefinition => SourceUnit::VariableDefinition(<>),
+    FunctionDefinition => SourceUnit::FunctionDefinition(<>),
     ";" => SourceUnit::StraySemicolon,
 }
 
@@ -63,6 +64,9 @@ ContractTy: ContractTy = {
 
 ContractPart: ContractPart = {
     VariableDefinition => ContractPart::VariableDefinition(<>),
+    FunctionDefinition => ContractPart::FunctionDefinition(<>),
+    ModifierDefinition => ContractPart::FunctionDefinition(<>),
+    ConstructorDefinition => ContractPart::FunctionDefinition(<>),
     ";" => ContractPart::StraySemicolon,
 }
 
@@ -100,6 +104,131 @@ StorageType: StorageType = {
     "persistent" => StorageType::Persistent,
     "temporary" => StorageType::Temporary,
     "instance" => StorageType::Instance,
+}
+
+FunctionDefinition: Box<FunctionDefinition> = {
+    "function" <name:SolIdentifierOrError> <params:ParameterList>
+    <attributes:FunctionAttribute*>
+    <returns:(returns ParameterList)?> <body:BlockStatementOrSemiColon> => {
+        let (_, returns) = returns.unwrap_or((None, Vec::new()));
+
+        Box::new(FunctionDefinition{
+            ty: FunctionTy::Function,
+            name,
+            params,
+            attributes,
+            returns,
+            body,
+        })
+    },
+}
+
+// Modifiers can't have attributes or return values, but we parse them anyway so we can give nice
+// error messages. The parameter list is optional
+ModifierDefinition: Box<FunctionDefinition> = {
+    "modifier" <name:Identifier> <params:ParameterList?>
+    <attributes:FunctionAttribute*>
+   <returns:(returns ParameterList)?> <body:BlockStatementOrSemiColon> => {
+        let params = params.unwrap_or(Vec::new());
+        let (_, returns) = returns.unwrap_or((None, Vec::new()));
+
+        Box::new(FunctionDefinition{
+            ty: FunctionTy::Modifier,
+            name: Some(name),
+            params,
+            attributes,
+            returns,
+            body
+        })
+    },
+}
+
+ConstructorDefinition: Box<FunctionDefinition> = {
+    <ty:FunctionTy> <name:Identifier?> <params:ParameterList>
+    <attributes:FunctionAttribute*>
+    <returns:(returns ParameterList)?> <body:BlockStatementOrSemiColon> => {
+        let (_, returns) = returns.unwrap_or((None, Vec::new()));
+
+        Box::new(FunctionDefinition{
+            ty,
+            name,
+            params,
+            attributes,
+            returns,
+            body
+        })
+    },
+}
+
+// Modifier and function have special case
+FunctionTy: FunctionTy = {
+    "fallback" => FunctionTy::Fallback,
+    "receive" => FunctionTy::Receive,
+    "constructor" => FunctionTy::Constructor,
+}
+
+BlockStatementOrSemiColon: Option<Statement> = {
+    ";" => None,
+}
+
+ParameterList: Vec<Option<Parameter>> = {
+    "(" ")" => Vec::new(),
+    "(" <p:Parameter> ")" => vec!(Some(p)),
+    "(" <CommaTwo<OptParameter>> ")" => <>,
+    "(" <false_token:!> ")"=> {
+        errors.push(<>);
+        Vec::new()
+    }
+}
+
+// A parameter list is used for function arguments and return.
+// Destructure statements utilize NamedParameter, not Parameter
+Parameter: Parameter = {
+    <annotation:ParameterAnnotation?> <ty:Precedence0> <storage:StorageLocation?> <name:Identifier?> => {
+        Parameter{annotation, ty, storage, name}
+    }
+}
+
+OptParameter: Option<Parameter> = {
+    <p:Parameter?> => <>,
+}
+
+ParameterAnnotation: Annotation = {
+    <id:SolAnnotation> => Annotation { id, value: None }
+}
+
+FunctionAttribute: FunctionAttribute = {
+    Mutability => FunctionAttribute::Mutability(<>),
+    Visibility => FunctionAttribute::Visibility(<>),
+    "immutable" => FunctionAttribute::Immutable,
+    "virtual" => FunctionAttribute::Virtual,
+    "override" => FunctionAttribute::Override(Vec::new()),
+    "override" "(" <list:CommaOne<SolIdentifierPath>> ")" => {
+        FunctionAttribute::Override(list)
+    },
+    <base:Base> => FunctionAttribute::BaseOrModifier( base),
+    <false_token:!> => {
+        errors.push(false_token);
+        FunctionAttribute::Error
+    },
+}
+
+returns: Option<String> = {
+    "returns" => Some("returns".to_string()),
+    "return" => Some("return".to_string())
+}
+
+StorageLocation: StorageLocation = {
+    "memory" => StorageLocation::Memory,
+    "storage" => StorageLocation::Storage,
+    "calldata" => StorageLocation::Calldata,
+}
+
+Mutability: Mutability = {
+    "pure" => Mutability::Pure,
+    "constant" => Mutability::Constant,
+    "view" => Mutability::View,
+    "payable" => Mutability::Payable,
 }
 
 Expression: Expression = {
@@ -240,6 +369,15 @@ NoFunctionTyPrecedence0: Expression = {
     LiteralExpression
 }
 
+NamedArgument: NamedArgument = {
+    <name:Identifier> ":" <expr:Expression> => {
+        NamedArgument{ name, expr }
+    },
+    "address" ":" <expr:Expression> => {
+        NamedArgument{ name: Identifier { name: "address".into() }, expr }
+    },
+}
+
 LiteralExpression: Expression = {
     "true" => Expression::BoolLiteral(true),
     "false" => Expression::BoolLiteral(false),
@@ -285,6 +423,10 @@ SolNoRevertIdentifier: Identifier = {
     "default" => Identifier{name: "default".to_string()},
 }
 
+SolAnnotation: Identifier = {
+    <a:annotation> => Identifier{ name: a.to_string() },
+}
+
 SolIdentifierOrError: Option<Identifier> = {
     Identifier => Some(<>),
     ! => {
@@ -299,6 +441,10 @@ SolIdentifierPath: IdentifierPath = {
         v.insert(0, e);
         IdentifierPath { identifiers: v }
     }
+}
+
+Base: Base = {
+    <name:SolIdentifierPath> <args:("(" <Comma<Expression>> ")")?> => Base { name, args }
 }
 
 Comma<T>: Vec<T> = {
