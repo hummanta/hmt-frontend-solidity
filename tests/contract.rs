@@ -1,18 +1,18 @@
-use hmt_frontend_solidity::{ast::*, error::ParseError, parser};
+mod common;
+
+use hmt_frontend_solidity::{ast::*, error::ParseError};
 
 #[test]
 fn simple_empty_contract() -> Result<(), Vec<ParseError>> {
-    let ast = parser::parse("contract Counter {}")?;
+    let ret = parse!(ContractDefinition, "contract Counter {}")?;
 
-    assert_eq!(ast.iter().count(), 1);
-    let unit = ast.iter().next().unwrap();
     assert_eq!(
-        unit,
-        &SourceUnit::ContractDefinition(Box::new(ContractDefinition {
+        ret.as_ref(),
+        &ContractDefinition {
             ty: ContractTy::Contract,
-            name: Identifier { name: "Counter".to_string() },
+            name: Identifier::new("Counter"),
             parts: Vec::new()
-        }))
+        }
     );
 
     Ok(())

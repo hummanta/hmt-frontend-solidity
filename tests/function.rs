@@ -1,58 +1,54 @@
-use hmt_frontend_solidity::{ast::*, error::ParseError, parser};
+mod common;
+
+use hmt_frontend_solidity::{ast::*, error::ParseError};
 
 #[test]
-fn def_top_public_function() -> Result<(), Vec<ParseError>> {
-    let ast = parser::parse("function hello() public;")?;
+fn def_public_function() -> Result<(), Vec<ParseError>> {
+    let ret = parse!(FunctionDefinition, "function hello() public;")?;
 
-    assert_eq!(ast.iter().count(), 1);
-    let unit = ast.iter().next().unwrap();
     assert_eq!(
-        unit,
-        &SourceUnit::FunctionDefinition(Box::new(FunctionDefinition {
+        ret.as_ref(),
+        &FunctionDefinition {
             ty: FunctionTy::Function,
-            name: Some(Identifier { name: "hello".into() }),
+            name: Some(Identifier::new("hello")),
             params: vec![],
             attributes: vec![FunctionAttribute::Visibility(Visibility::Public)],
             returns: vec![],
             body: None
-        })),
+        }
     );
 
     Ok(())
 }
 
 #[test]
-fn top_empty_public_function() -> Result<(), Vec<ParseError>> {
-    let ast = parser::parse("function hello() public {}")?;
+fn empty_public_function() -> Result<(), Vec<ParseError>> {
+    let ret = parse!(FunctionDefinition, "function hello() public {}")?;
 
-    assert_eq!(ast.iter().count(), 1);
-    let unit = ast.iter().next().unwrap();
     assert_eq!(
-        unit,
-        &SourceUnit::FunctionDefinition(Box::new(FunctionDefinition {
+        ret.as_ref(),
+        &FunctionDefinition {
             ty: FunctionTy::Function,
-            name: Some(Identifier { name: "hello".into() }),
+            name: Some(Identifier::new("hello")),
             params: vec![],
             attributes: vec![FunctionAttribute::Visibility(Visibility::Public)],
             returns: vec![],
             body: Some(Statement::Block { unchecked: false, statements: vec![] })
-        })),
+        }
     );
 
     Ok(())
 }
 
 #[test]
-fn def_top_public_return_function() -> Result<(), Vec<ParseError>> {
-    let ast = parser::parse("function get() public view returns (uint);")?;
+fn def_public_return_function() -> Result<(), Vec<ParseError>> {
+    let ret = parse!(FunctionDefinition, "function get() public view returns (uint);")?;
 
-    assert_eq!(ast.iter().count(), 1);
-    let unit = ast.iter().next().unwrap();
     assert_eq!(
-        unit,
-        &SourceUnit::FunctionDefinition(Box::new(FunctionDefinition {
+        ret.as_ref(),
+        &FunctionDefinition {
             ty: FunctionTy::Function,
-            name: Some(Identifier { name: "get".into() }),
+            name: Some(Identifier::new("get")),
             params: vec![],
             attributes: vec![
                 FunctionAttribute::Visibility(Visibility::Public),
@@ -60,12 +56,12 @@ fn def_top_public_return_function() -> Result<(), Vec<ParseError>> {
             ],
             returns: vec![Some(Parameter {
                 annotation: None,
-                ty: Expression::Variable(Identifier { name: "uint".into() }),
+                ty: Expression::Variable(Identifier::new("uint")),
                 storage: None,
                 name: None
             })],
             body: None
-        })),
+        }
     );
 
     Ok(())

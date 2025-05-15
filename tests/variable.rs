@@ -1,19 +1,19 @@
-use hmt_frontend_solidity::{ast::*, error::ParseError, parser};
+mod common;
+
+use hmt_frontend_solidity::{ast::*, error::ParseError};
 
 #[test]
-fn def_top_unit_public_var() -> Result<(), Vec<ParseError>> {
-    let ast = parser::parse("uint public count;")?;
+fn def_public_var() -> Result<(), Vec<ParseError>> {
+    let ret = parse!(VariableDefinition, "uint public count;")?;
 
-    assert_eq!(ast.iter().count(), 1);
-    let unit = ast.iter().next().unwrap();
     assert_eq!(
-        unit,
-        &SourceUnit::VariableDefinition(Box::new(VariableDefinition {
-            ty: Expression::Variable(Identifier { name: "uint".to_string() }),
+        ret.as_ref(),
+        &VariableDefinition {
+            ty: Expression::Variable(Identifier::new("uint")),
             attrs: vec![VariableAttribute::Visibility(Visibility::Public)],
-            name: Some(Identifier { name: "count".to_string() }),
+            name: Some(Identifier::new("count")),
             initializer: None
-        })),
+        },
     );
 
     Ok(())

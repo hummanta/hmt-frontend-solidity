@@ -17,7 +17,7 @@ SourceUnit: SourceUnit = {
     ";" => SourceUnit::StraySemicolon,
 }
 
-PragmaDirective: PragmaDirective = {
+pub PragmaDirective: PragmaDirective = {
     "pragma" <i:Identifier> <comp:VersionComparator1+> ";" => {
         PragmaDirective::Version(i, comp)
     }
@@ -52,7 +52,7 @@ VersionOp: VersionOp = {
     "*" => VersionOp::Wildcard,
 }
 
-ContractDefinition: Box<ContractDefinition> = {
+pub ContractDefinition: Box<ContractDefinition> = {
     <ty:ContractTy> <name:Identifier> "{" <parts:(<ContractPart>)*> "}" => {
         Box::new(ContractDefinition{ ty, name, parts })
     }
@@ -70,7 +70,7 @@ ContractPart: ContractPart = {
     ";" => ContractPart::StraySemicolon,
 }
 
-VariableDefinition: Box<VariableDefinition> = {
+pub VariableDefinition: Box<VariableDefinition> = {
     <ty:NoFunctionTyPrecedence0> <attrs:VariableAttribute*> <name:SolIdentifierOrError> <e:("=" <Expression>)?> ";" => {
         Box::new(VariableDefinition{ ty, attrs, name, initializer: e})
     },
@@ -106,7 +106,7 @@ StorageType: StorageType = {
     "instance" => StorageType::Instance,
 }
 
-FunctionDefinition: Box<FunctionDefinition> = {
+pub FunctionDefinition: Box<FunctionDefinition> = {
     "function" <name:SolIdentifierOrError> <params:ParameterList>
     <attributes:FunctionAttribute*>
     <returns:(returns ParameterList)?> <body:BlockStatementOrSemiColon> => {

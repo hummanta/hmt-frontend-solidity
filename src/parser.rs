@@ -24,6 +24,8 @@ lalrpop_mod!(
     grammar
 );
 
+pub use grammar::*;
+
 /// Parses source into Program or returns syntax errors
 pub fn parse(source: &str) -> Result<Program, Vec<ParseError>> {
     let lexer = Lexer::new(source);

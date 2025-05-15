@@ -1,53 +1,51 @@
-use hmt_frontend_solidity::{ast::*, error::ParseError, parser};
+mod common;
+
+use hmt_frontend_solidity::{ast::*, error::ParseError};
 
 #[test]
-fn top_fn_statement_expr() -> Result<(), Vec<ParseError>> {
-    let ast = parser::parse("function hello() public { count += 1; }")?;
+fn fn_statement_expr() -> Result<(), Vec<ParseError>> {
+    let ret = parse!(FunctionDefinition, "function hello() public { count += 1; }")?;
 
-    assert_eq!(ast.iter().count(), 1);
-    let unit = ast.iter().next().unwrap();
     assert_eq!(
-        unit,
-        &SourceUnit::FunctionDefinition(Box::new(FunctionDefinition {
+        ret.as_ref(),
+        &FunctionDefinition {
             ty: FunctionTy::Function,
-            name: Some(Identifier { name: "hello".into() }),
+            name: Some(Identifier::new("hello")),
             params: vec![],
             attributes: vec![FunctionAttribute::Visibility(Visibility::Public)],
             returns: vec![],
             body: Some(Statement::Block {
                 unchecked: false,
                 statements: vec![Statement::Expression(Expression::AssignAdd(
-                    Box::new(Expression::Variable(Identifier { name: "count".into() })),
+                    Box::new(Expression::Variable(Identifier::new("count"))),
                     Box::new(Expression::NumberLiteral("1".into(), None))
                 ))]
             })
-        })),
+        },
     );
 
     Ok(())
 }
 
 #[test]
-fn top_fn_statement_return() -> Result<(), Vec<ParseError>> {
-    let ast = parser::parse("function hello() public { return count; }")?;
+fn fn_statement_return() -> Result<(), Vec<ParseError>> {
+    let ret = parse!(FunctionDefinition, "function hello() public { return count; }")?;
 
-    assert_eq!(ast.iter().count(), 1);
-    let unit = ast.iter().next().unwrap();
     assert_eq!(
-        unit,
-        &SourceUnit::FunctionDefinition(Box::new(FunctionDefinition {
+        ret.as_ref(),
+        &FunctionDefinition {
             ty: FunctionTy::Function,
-            name: Some(Identifier { name: "hello".into() }),
+            name: Some(Identifier::new("hello")),
             params: vec![],
             attributes: vec![FunctionAttribute::Visibility(Visibility::Public)],
             returns: vec![],
             body: Some(Statement::Block {
                 unchecked: false,
-                statements: vec![Statement::Return(Some(Expression::Variable(Identifier {
-                    name: "count".into()
-                })))]
+                statements: vec![Statement::Return(Some(Expression::Variable(Identifier::new(
+                    "count"
+                ))))]
             })
-        })),
+        },
     );
 
     Ok(())

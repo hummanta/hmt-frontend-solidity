@@ -658,6 +658,12 @@ pub struct Identifier {
     pub name: String,
 }
 
+impl Identifier {
+    pub fn new(name: &str) -> Self {
+        Self { name: name.to_string() }
+    }
+}
+
 /// A qualified identifier.
 ///
 /// `<identifiers>.*`
