@@ -123,6 +123,8 @@ pub struct ContractDefinition {
     pub ty: ContractTy,
     /// The identifier.
     pub name: Identifier,
+    /// The list of inheritance specifiers.
+    pub base: Vec<Base>,
     /// The list of contract parts.
     pub parts: Vec<ContractPart>,
 }
@@ -136,8 +138,17 @@ impl ContractDefinition {
 /// The contract type.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum ContractTy {
+    /// `abstract contract`
+    Abstract,
+
     /// `contract`
     Contract,
+
+    /// `interface`
+    Interface,
+
+    /// `library`
+    Library,
 }
 
 /// A contract part.
@@ -638,6 +649,12 @@ pub struct StringLiteral {
     ///
     /// Does not contain the quotes or the `unicode` prefix.
     pub string: String,
+}
+
+impl StringLiteral {
+    pub fn new(unicode: bool, s: &str) -> Self {
+        Self { unicode, string: s.to_string() }
+    }
 }
 
 /// A hex literal.

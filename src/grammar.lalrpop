@@ -53,13 +53,17 @@ VersionOp: VersionOp = {
 }
 
 pub ContractDefinition: Box<ContractDefinition> = {
-    <ty:ContractTy> <name:Identifier> "{" <parts:(<ContractPart>)*> "}" => {
-        Box::new(ContractDefinition{ ty, name, parts })
+    <ty:ContractTy> <name:Identifier> <base:Bases>
+    "{" <parts:(<ContractPart>)*> "}" => {
+        Box::new(ContractDefinition{ ty, name, base, parts })
     }
 }
 
 ContractTy: ContractTy = {
-    "contract" => ContractTy::Contract,
+   "abstract" "contract" => ContractTy::Abstract,
+   "contract" => ContractTy::Contract,
+   "interface" => ContractTy::Interface,
+   "library" => ContractTy::Library,
 }
 
 ContractPart: ContractPart = {
@@ -241,7 +245,7 @@ NonIfStatement: Statement = {
 }
 
 VariableDeclaration: VariableDeclaration = {
-    <ty:Precedence0> <storage:StorageLocation?> <name:SolIdentifierOrError> <r:@R> => {
+    <ty:Precedence0> <storage:StorageLocation?> <name:SolIdentifierOrError> => {
         VariableDeclaration { ty, storage, name }
     }
 }
@@ -525,6 +529,11 @@ SolIdentifierPath: IdentifierPath = {
         v.insert(0, e);
         IdentifierPath { identifiers: v }
     }
+}
+
+Bases: Vec<Base> = {
+    => Vec::new(),
+    "is" <CommaOne<Base>> => <>,
 }
 
 Base: Base = {
