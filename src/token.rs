@@ -20,29 +20,37 @@ use crate::error::LexicalError;
 
 #[derive(Logos, Clone, Debug, PartialEq)]
 #[logos(skip r"[ \t\n\f]+", skip r"//.*\n?", error = LexicalError)]
-pub enum Token {
-    #[regex("[_a-zA-Z][_0-9a-zA-Z]*", |lex| lex.slice().to_string())]
-    Identifier(String),
+pub enum Token<'input> {
+    #[regex("[_a-zA-Z][_0-9a-zA-Z]*", |lex| lex.slice())]
+    Identifier(&'input str),
 
-    #[regex("@[_a-zA-Z][_0-9a-zA-Z]*", |lex| lex.slice().to_string())]
-    Annotation(String),
+    #[regex("@[_a-zA-Z][_0-9a-zA-Z]*", |lex| lex.slice())]
+    Annotation(&'input str),
 
-    #[regex(r#"(unicode)?"[_a-zA-Z][_0-9a-zA-Z]*""#, |lex| lex.slice().to_string())]
-    StringLiteral(String),
+    /// `(unicode, literal)`
+    #[regex(r#"(unicode)?"[_a-zA-Z][_0-9a-zA-Z]*""#, |lex| lex.slice())]
+    StringLiteral(&'input str),
 
-    #[regex(r#"hex["']([0-9a-fA-F]{2}(_?[0-9a-fA-F]{2})*)*["']"#, |lex| lex.slice().to_string())]
-    HexLiteral(String),
+    #[regex(r#"hex["']([0-9a-fA-F]{2}(_?[0-9a-fA-F]{2})*)*["']"#, |lex| lex.slice())]
+    HexLiteral(&'input str),
 
-    #[regex("0x[0-9a-fA-F]{40}", |lex| lex.slice().to_string())]
-    AddressLiteral(String),
+    #[regex("0x[0-9a-fA-F]{40}", |lex| lex.slice())]
+    AddressLiteral(&'input str),
 
-    #[regex(r"-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?", |lex| lex.slice().parse::<f64>().unwrap())]
-    Number(f64),
+    #[regex(
+        r"-?(?:0|[1-9]\d*)(?:_\d+)*(?:\.(?:\d(?:_\d+)*))?(?:[eE][+-]?(?:\d(?:_\d+)*))?",
+        |lex| lex.slice()
+    )]
+    Number(&'input str),
 
-    RationalNumber(String),
+    #[regex(
+        r"-?(?:0|[1-9]\d*)(?:_\d+)*/(?:0|[1-9]\d*)(?:_\d+)*(?:[eE][+-]?(?:\d(?:_\d+)*))?",
+        |lex| lex.slice()
+    )]
+    RationalNumber(&'input str),
 
-    #[regex(r"0x([0-9a-fA-F]{2}(_?[0-9a-fA-F]{2})*)*", |lex| lex.slice().to_string())]
-    HexNumber(String),
+    #[regex(r"0x([0-9a-fA-F]{2}(_?[0-9a-fA-F]{2})*)*", |lex| lex.slice())]
+    HexNumber(&'input str),
 
     #[token(";")]
     Semicolon,
@@ -399,7 +407,7 @@ pub enum Token {
     Error,
 }
 
-impl fmt::Display for Token {
+impl fmt::Display for Token<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)
     }

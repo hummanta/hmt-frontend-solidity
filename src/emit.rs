@@ -17,10 +17,10 @@ use std::collections::HashMap;
 use cranelift::{
     module::FuncId,
     object::ObjectModule,
-    prelude::{EntityRef, FunctionBuilder, InstBuilder, Value, Variable},
+    prelude::{EntityRef, FunctionBuilder, Value, Variable},
 };
 
-use crate::ast::*;
+use crate::{ast::*, visitor::Visitor};
 
 pub struct EmitContext<'a> {
     pub module: &'a mut ObjectModule,
@@ -47,6 +47,7 @@ impl<'a> EmitContext<'a> {
     }
 }
 
+#[allow(dead_code)]
 pub struct CraneliftEmitter<'a> {
     ctx: &'a mut EmitContext<'a>,
 }
@@ -58,77 +59,7 @@ impl<'a> CraneliftEmitter<'a> {
 }
 
 impl Visitor<Value> for CraneliftEmitter<'_> {
-    fn visit_program(&mut self, program: &Program) -> Value {
-        let entry = self.ctx.builder.create_block();
-        self.ctx.builder.switch_to_block(entry);
-
-        for unit in program.iter() {
-            unit.accept(self);
-        }
-
-        self.ctx.builder.ins().return_(&[]);
-        Value::new(0)
-    }
-
-    fn visit_source_unit(&mut self, source_unit: &SourceUnit) -> Value {
-        match source_unit {
-            SourceUnit::PragmaDirective(pragma) => pragma.accept(self),
-            SourceUnit::ContractDefinition(contract) => contract.accept(self),
-            SourceUnit::VariableDefinition(var) => var.accept(self),
-            SourceUnit::FunctionDefinition(func) => func.accept(self),
-            SourceUnit::StraySemicolon => Value::from_u32(0),
-        }
-    }
-
-    fn visit_pragma(&mut self, _pragma: &PragmaDirective) -> Value {
-        todo!()
-    }
-
-    fn visit_contract(&mut self, _contract: &ContractDefinition) -> Value {
-        todo!()
-    }
-
-    fn visit_contract_part(&mut self, part: &ContractPart) -> Value {
-        match part {
-            ContractPart::VariableDefinition(var) => var.accept(self),
-            ContractPart::FunctionDefinition(func) => func.accept(self),
-            ContractPart::StraySemicolon => Value::from_u32(0),
-        }
-    }
-
-    fn visit_variable(&mut self, _var: &VariableDefinition) -> Value {
-        todo!()
-    }
-
-    fn visit_function(&mut self, _func: &FunctionDefinition) -> Value {
-        todo!()
-    }
-
-    fn visit_parameter(&mut self, _param: &Parameter) -> Value {
-        todo!()
-    }
-
-    fn visit_annotation(&mut self, _ano: &Annotation) -> Value {
-        todo!()
-    }
-
-    fn visit_base(&mut self, _base: &Base) -> Value {
-        todo!()
-    }
-
-    fn visit_named_argument(&mut self, _arg: &NamedArgument) -> Value {
-        todo!()
-    }
-
-    fn visit_statement(&mut self, _stm: &Statement) -> Value {
-        todo!()
-    }
-
-    fn visit_var_decl(&mut self, _decl: &VariableDeclaration) -> Value {
-        todo!()
-    }
-
-    fn visit_expression(&mut self, _exp: &Expression) -> Value {
+    fn visit_source_unit(&mut self, _: &SourceUnit) -> Value {
         todo!()
     }
 }

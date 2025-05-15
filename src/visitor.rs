@@ -12,13 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod args;
-pub mod ast;
-pub mod codegen;
-pub mod emit;
-pub mod error;
-pub mod helpers;
-pub mod lexer;
-pub mod parser;
-pub mod token;
-pub mod visitor;
+use crate::ast::*;
+
+pub trait Visitor<T> {
+    fn visit_source_unit(&mut self, _: &SourceUnit) -> T;
+}

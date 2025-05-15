@@ -510,18 +510,21 @@ checksum = "f154ce46856750ed433c8649605bf7ed2de3bc35fd9d2a9f30cddd873c80cb08"
 
 [[package]]
 name = "hmt-frontend-solidity"
-version = "0.1.10"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "ariadne",
  "clap",
  "concolor",
  "cranelift",
+ "itertools",
  "lalrpop",
  "lalrpop-util",
  "logos",
  "paste",
+ "serde",
  "target-lexicon",
+ "thiserror",
 ]
 
 [[package]]
@@ -965,6 +968,26 @@ checksum = "8a984c8d058c627faaf5e8e2ed493fa3c51771889196de1016cf9c1c6e90d750"
 dependencies = [
  "home",
  "windows-sys 0.59.0",
+]
+
+[[package]]
+name = "thiserror"
+version = "2.0.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "567b8a2dae586314f7be2a752ec7474332959c6460e02bde30d702a66d488708"
+dependencies = [
+ "thiserror-impl",
+]
+
+[[package]]
+name = "thiserror-impl"
+version = "2.0.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f7cf42b4507d8ea322120659672cf1b9dbb93f8f2d4ecfd6e51350ff5b17a1d"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

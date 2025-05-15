@@ -32,7 +32,7 @@ fn run() -> Result<()> {
     let source = fs::read_to_string(&args.input)
         .context(format!("Failed to read input file: {}", args.input.display()))?;
 
-    let ast = match parser::parse(&source) {
+    let ast = match parser::parse(&source, 0) {
         Ok(ast) => ast,
         Err(errors) => {
             let reports = errors

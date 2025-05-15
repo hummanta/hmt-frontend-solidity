@@ -27,7 +27,7 @@ use cranelift::{
 use target_lexicon::Triple;
 
 use crate::{
-    ast::Program,
+    ast::SourceUnit,
     emit::{CraneliftEmitter, EmitContext},
 };
 
@@ -49,7 +49,7 @@ impl Codegen {
         Self { module, ir: String::new() }
     }
 
-    pub fn gen(&mut self, program: &Program) {
+    pub fn gen(&mut self, program: &SourceUnit) {
         let mut module_ctx = self.module.make_context();
         let mut builder_ctx = FunctionBuilderContext::new();
         let builder = FunctionBuilder::new(&mut module_ctx.func, &mut builder_ctx);

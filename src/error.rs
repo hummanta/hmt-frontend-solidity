@@ -12,33 +12,48 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::{
-    fmt::{self, Display},
-    num::ParseIntError,
-};
+use std::fmt::Display;
 
 use ariadne::{Report, ReportKind, Source};
 use lalrpop_util::{ErrorRecovery, ParseError as LalrpopParseError};
+use thiserror::Error;
 
-#[derive(Default, Debug, Clone, PartialEq)]
+use crate::ast::Loc;
+
+/// An error thrown by [Lexer].
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum LexicalError {
-    InvalidInteger(ParseIntError),
-    #[default]
+    #[error("end of file found in comment")]
+    EndOfFileInComment(Loc),
+
+    #[error("end of file found in string literal")]
+    EndOfFileInString(Loc),
+
+    #[error("end of file found in hex literal string")]
+    EndofFileInHex(Loc),
+
+    #[error("missing number")]
+    MissingNumber(Loc),
+
+    #[error("invalid character '{1}' in hex literal string")]
+    InvalidCharacterInHexLiteral(Loc, char),
+
+    #[error("unrecognised token '{1}'")]
+    UnrecognisedToken(Loc, String),
+
+    #[error("missing exponent")]
+    MissingExponent(Loc),
+
+    #[error("'{1}' found where 'from' expected")]
+    ExpectedFrom(Loc, String),
+
+    #[error("invalid token")]
     InvalidToken,
 }
 
-impl fmt::Display for LexicalError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::InvalidInteger(err) => write!(f, "Invalid integer: {}", err),
-            Self::InvalidToken => write!(f, "Invalid token"),
-        }
-    }
-}
-
-impl From<ParseIntError> for LexicalError {
-    fn from(err: ParseIntError) -> Self {
-        LexicalError::InvalidInteger(err)
+impl Default for LexicalError {
+    fn default() -> Self {
+        Self::InvalidToken
     }
 }
 

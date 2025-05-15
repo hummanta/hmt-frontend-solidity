@@ -18,18 +18,18 @@ use crate::{error::LexicalError, token::Token};
 
 pub type Spanned<Tok, Loc, Error> = Result<(Loc, Tok, Loc), Error>;
 
-pub struct Lexer<'source> {
-    tokens: SpannedIter<'source, Token>,
+pub struct Lexer<'input> {
+    tokens: SpannedIter<'input, Token<'input>>,
 }
 
-impl<'source> Lexer<'source> {
-    pub fn new(source: &'source str) -> Self {
+impl<'input> Lexer<'input> {
+    pub fn new(source: &'input str) -> Self {
         Self { tokens: Token::lexer(source).spanned() }
     }
 }
 
-impl Iterator for Lexer<'_> {
-    type Item = Spanned<Token, usize, LexicalError>;
+impl<'input> Iterator for Lexer<'input> {
+    type Item = Spanned<Token<'input>, usize, LexicalError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.tokens.next().map(|(token, span)| match token {
@@ -49,9 +49,9 @@ mod test {
         let mut lexer = Lexer::new("pragma solidity ^0.8;");
 
         assert_eq!(lexer.next(), Some(Ok((0, Token::Pragma, 6))));
-        assert_eq!(lexer.next(), Some(Ok((7, Token::Identifier(String::from("solidity")), 15))));
+        assert_eq!(lexer.next(), Some(Ok((7, Token::Identifier("solidity"), 15))));
         assert_eq!(lexer.next(), Some(Ok((16, Token::BitwiseXor, 17))));
-        assert_eq!(lexer.next(), Some(Ok((17, Token::Number(0.8), 20))));
+        assert_eq!(lexer.next(), Some(Ok((17, Token::Number("0.8"), 20))));
         assert_eq!(lexer.next(), Some(Ok((20, Token::Semicolon, 21))));
     }
 }
