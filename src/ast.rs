@@ -52,6 +52,10 @@ impl SourceUnit {
 /// A pragma directive
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum PragmaDirective {
+    /// pragma a b;
+    Identifier(Option<Identifier>, Option<Identifier>),
+    /// pragma a "b";
+    StringLiteral(Identifier, StringLiteral),
     /// pragma version =0.5.16;
     Version(Identifier, Vec<VersionComparator>),
 }

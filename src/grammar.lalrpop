@@ -18,8 +18,18 @@ SourceUnit: SourceUnit = {
 }
 
 pub PragmaDirective: PragmaDirective = {
-    "pragma" <i:Identifier> <comp:VersionComparator1+> ";" => {
+    "pragma" <i:SolIdentifier> <s:Identifier> ";" => {
+        PragmaDirective::Identifier(Some(i), Some(s))
+    },
+    "pragma" <i:SolIdentifier> <s:StringLiteral> ";" => {
+        PragmaDirective::StringLiteral(i, s)
+    },
+    "pragma" <i:SolIdentifier> <comp:VersionComparator1+> ";" => {
         PragmaDirective::Version(i, comp)
+    },
+    "pragma" <false_token:!> ";" => {
+        errors.push(false_token);
+        PragmaDirective::Identifier(None, None)
     }
 }
 
@@ -78,7 +88,7 @@ pub VariableDefinition: Box<VariableDefinition> = {
     <ty:NoFunctionTyPrecedence0> <attrs:VariableAttribute*> <name:SolIdentifierOrError> <e:("=" <Expression>)?> ";" => {
         Box::new(VariableDefinition{ ty, attrs, name, initializer: e})
     },
-    <ty:NoFunctionTyPrecedence0> <attrs:VariableAttribute*> <name:Identifier> <false_token:!> ";" => {
+    <ty:NoFunctionTyPrecedence0> <attrs:VariableAttribute*> <name:SolIdentifier> <false_token:!> ";" => {
         errors.push (false_token);
         Box::new(VariableDefinition{
             ty, attrs, name: Some(name), initializer: None,
@@ -130,7 +140,7 @@ pub FunctionDefinition: Box<FunctionDefinition> = {
 // Modifiers can't have attributes or return values, but we parse them anyway so we can give nice
 // error messages. The parameter list is optional
 ModifierDefinition: Box<FunctionDefinition> = {
-    "modifier" <name:Identifier> <params:ParameterList?>
+    "modifier" <name:SolIdentifier> <params:ParameterList?>
     <attributes:FunctionAttribute*>
    <returns:(returns ParameterList)?> <body:BlockStatementOrSemiColon> => {
         let params = params.unwrap_or(Vec::new());
@@ -272,7 +282,7 @@ ParameterList: Vec<Option<Parameter>> = {
 // A parameter list is used for function arguments and return.
 // Destructure statements utilize NamedParameter, not Parameter
 Parameter: Parameter = {
-    <annotation:ParameterAnnotation?> <ty:Precedence0> <storage:StorageLocation?> <name:Identifier?> => {
+    <annotation:ParameterAnnotation?> <ty:Precedence0> <storage:StorageLocation?> <name:SolIdentifier?> => {
         Parameter{annotation, ty, storage, name}
     }
 }
@@ -413,7 +423,7 @@ Precedence2: Expression = {
     "--" <e:Precedence2> => Expression::PreDecrement(Box::new(e)),
     "+" <e:Precedence2>  => Expression::UnaryPlus(Box::new(e)),
     "-" <e:Precedence2> => Expression::Negate(Box::new(e)),
-    "revert" => Expression::Variable(Identifier{name: "revert".to_string()}),
+    "revert" => Expression::Variable(Identifier{ name: "revert".to_string()}),
 
     Precedence1
 }
@@ -440,15 +450,15 @@ NoFunctionTyPrecedence0: Expression = {
     <e:Precedence1> "--" => Expression::PostDecrement(Box::new(e)),
     <e:Precedence1> "[" <i:Expression?> "]" => Expression::ArraySubscript(Box::new(e), i.map(Box::new)),
     <e:Precedence1> "[" <l:Expression?> ":" <r:Expression?> "]" => Expression::ArraySlice(Box::new(e), l.map(Box::new), r.map(Box::new)),
-    <e:Precedence1> "." <i:Identifier> => Expression::MemberAccess(Box::new(e), i),
+    <e:Precedence1> "." <i:SolIdentifier> => Expression::MemberAccess(Box::new(e), i),
     // Solidity has ".address" members on external function types. Address is a keyword, so special casing needed
     <e:Precedence1> "." "address" => {
         Expression::MemberAccess(Box::new(e),
-            Identifier { name: "address".to_string() })
+            Identifier{ name: "address".to_string() })
     },
     <e:Precedence1> "." "new" => {
         Expression::MemberAccess(Box::new(e),
-            Identifier { name: "new".to_string() })
+            Identifier{ name: "new".to_string() })
     },
     "[" <v:Comma<Expression>> "]" => {
         Expression::ArrayLiteral(v)
@@ -458,11 +468,11 @@ NoFunctionTyPrecedence0: Expression = {
 }
 
 NamedArgument: NamedArgument = {
-    <name:Identifier> ":" <expr:Expression> => {
+    <name:SolIdentifier> ":" <expr:Expression> => {
         NamedArgument{ name, expr }
     },
     "address" ":" <expr:Expression> => {
-        NamedArgument{ name: Identifier { name: "address".into() }, expr }
+        NamedArgument{ name: Identifier{ name: "address".into() }, expr }
     },
 }
 
@@ -503,12 +513,21 @@ Identifier: Identifier = {
     <n:identifier> => Identifier{ name: n.to_string() }
 }
 
+SolIdentifier: Identifier = {
+    <n:identifier> => Identifier{ name: n.to_string() },
+    "switch" => Identifier{ name: "switch".to_string() },
+    "leave" => Identifier{ name: "leave".to_string() },
+    "case" => Identifier{ name: "case".to_string() },
+    "default" => Identifier{ name: "default".to_string() },
+    "revert" => Identifier{ name: "revert".to_string() },
+}
+
 SolNoRevertIdentifier: Identifier = {
-    <n:identifier> => Identifier{name: n.to_string()},
-    "switch" => Identifier{name: "switch".to_string()},
-    "leave" => Identifier{name: "leave".to_string()},
-    "case" => Identifier{name: "case".to_string()},
-    "default" => Identifier{name: "default".to_string()},
+    <n:identifier> => Identifier{ name: n.to_string() },
+    "switch" => Identifier{ name: "switch".to_string() },
+    "leave" => Identifier{ name: "leave".to_string() },
+    "case" => Identifier{ name: "case".to_string() },
+    "default" => Identifier{ name: "default".to_string() },
 }
 
 SolAnnotation: Identifier = {
@@ -516,7 +535,7 @@ SolAnnotation: Identifier = {
 }
 
 SolIdentifierOrError: Option<Identifier> = {
-    Identifier => Some(<>),
+    SolIdentifier => Some(<>),
     ! => {
         errors.push(<>);
         None
@@ -524,7 +543,7 @@ SolIdentifierOrError: Option<Identifier> = {
 }
 
 SolIdentifierPath: IdentifierPath = {
-    <e:Identifier> <v:("." <Identifier>)*> => {
+    <e:SolIdentifier> <v:("." <SolIdentifier>)*> => {
         let mut v = v;
         v.insert(0, e);
         IdentifierPath { identifiers: v }
