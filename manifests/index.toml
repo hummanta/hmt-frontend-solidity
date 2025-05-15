@@ -11,17 +11,18 @@ targets = [
     "aarch64-apple-darwin",
     "x86_64-pc-windows-msvc",
 ]
-latest = "v0.1.10"
+latest = "v0.2.0"
 
 [releases]
 "v0.1.1" = "release-v0.1.1.toml"
-"v0.1.6" = "release-v0.1.6.toml"
-"v0.1.10" = "release-v0.1.10.toml"
-"v0.1.2" = "release-v0.1.2.toml"
-"v0.1.3" = "release-v0.1.3.toml"
-"v0.1.4" = "release-v0.1.4.toml"
 "v0.1.7" = "release-v0.1.7.toml"
 "v0.1.9" = "release-v0.1.9.toml"
-"v0.1.5" = "release-v0.1.5.toml"
-"v0.1.0" = "release-v0.1.0.toml"
+"v0.1.3" = "release-v0.1.3.toml"
+"v0.1.4" = "release-v0.1.4.toml"
 "v0.1.8" = "release-v0.1.8.toml"
+"v0.1.5" = "release-v0.1.5.toml"
+"v0.1.6" = "release-v0.1.6.toml"
+"v0.2.0" = "release-v0.2.0.toml"
+"v0.1.2" = "release-v0.1.2.toml"
+"v0.1.10" = "release-v0.1.10.toml"
+"v0.1.0" = "release-v0.1.0.toml"
