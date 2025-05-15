@@ -281,6 +281,56 @@ impl FunctionDefinition {
     }
 }
 
+/// A type.
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum Type {
+    /// `address`
+    Address,
+
+    /// `address payable`
+    AddressPayable,
+
+    /// `payable`
+    ///
+    /// Only used as a cast.
+    Payable,
+
+    /// `bool`
+    Bool,
+
+    /// `string`
+    String,
+
+    /// `int<n>`
+    Int(u16),
+
+    /// `uint<n>`
+    Uint(u16),
+
+    /// `bytes<n>`
+    Bytes(u8),
+
+    /// `fixed`
+    Rational,
+
+    /// `bytes`
+    DynamicBytes,
+
+    /// `mapping(<key> [key_name] => <value> [value_name])`
+    Mapping {
+        /// The key expression.
+        ///
+        /// This is only allowed to be an elementary type or a user defined type.
+        key: Box<Expression>,
+        /// The optional key identifier.
+        key_name: Option<Identifier>,
+        /// The value expression.
+        value: Box<Expression>,
+        /// The optional value identifier.
+        value_name: Option<Identifier>,
+    },
+}
+
 /// A function's type.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum FunctionTy {
@@ -529,6 +579,12 @@ pub enum Expression {
     Parenthesis(Box<Expression>),
     /// `<1>.<2>`
     MemberAccess(Box<Expression>, Identifier),
+    /// `<1>(<2>,*)`
+    FunctionCall(Box<Expression>, Vec<Expression>),
+    /// `<1><2>` where <2> is a block.
+    FunctionCallBlock(Box<Expression>, Box<Statement>),
+    /// `<1>({ <2>,* })`
+    NamedFunctionCall(Box<Expression>, Vec<NamedArgument>),
     /// `!<1>`
     Not(Box<Expression>),
     /// `~<1>`
@@ -621,6 +677,8 @@ pub enum Expression {
     HexNumberLiteral(String, Option<Identifier>),
     /// `<1>+`. See [StringLiteral].
     StringLiteral(Vec<StringLiteral>),
+    /// See [Type].
+    Type(Type),
     /// `<1>+`. See [HexLiteral].
     HexLiteral(Vec<HexLiteral>),
     /// `0x[a-fA-F0-9]{40}`
@@ -632,6 +690,8 @@ pub enum Expression {
     AddressLiteral(String),
     /// Any valid [Identifier].
     Variable(Identifier),
+    /// `(<1>,*)`
+    List(ParameterList),
     /// `\[ <1>.* \]`
     ArrayLiteral(Vec<Expression>),
 }

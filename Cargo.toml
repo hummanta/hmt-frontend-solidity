@@ -1,7 +1,7 @@
 [package]
 name = "hmt-frontend-solidity"
 description = "Parsing the Solidity source code and generating the Cranelift IR"
-version = "0.1.9"
+version = "0.1.10"
 edition = "2021"
 
 [dependencies]

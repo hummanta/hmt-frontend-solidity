@@ -86,7 +86,7 @@ ContractPart: ContractPart = {
 
 pub VariableDefinition: Box<VariableDefinition> = {
     <ty:NoFunctionTyPrecedence0> <attrs:VariableAttribute*> <name:SolIdentifierOrError> <e:("=" <Expression>)?> ";" => {
-        Box::new(VariableDefinition{ ty, attrs, name, initializer: e})
+        Box::new(VariableDefinition{ ty, attrs, name, initializer: e })
     },
     <ty:NoFunctionTyPrecedence0> <attrs:VariableAttribute*> <name:SolIdentifier> <false_token:!> ";" => {
         errors.push (false_token);
@@ -123,7 +123,7 @@ StorageType: StorageType = {
 pub FunctionDefinition: Box<FunctionDefinition> = {
     "function" <name:SolIdentifierOrError> <params:ParameterList>
     <attributes:FunctionAttribute*>
-    <returns:(returns ParameterList)?> <body:BlockStatementOrSemiColon> => {
+    <returns:(Returns ParameterList)?> <body:BlockStatementOrSemiColon> => {
         let (_, returns) = returns.unwrap_or((None, Vec::new()));
 
         Box::new(FunctionDefinition{
@@ -142,7 +142,7 @@ pub FunctionDefinition: Box<FunctionDefinition> = {
 ModifierDefinition: Box<FunctionDefinition> = {
     "modifier" <name:SolIdentifier> <params:ParameterList?>
     <attributes:FunctionAttribute*>
-   <returns:(returns ParameterList)?> <body:BlockStatementOrSemiColon> => {
+   <returns:(Returns ParameterList)?> <body:BlockStatementOrSemiColon> => {
         let params = params.unwrap_or(Vec::new());
         let (_, returns) = returns.unwrap_or((None, Vec::new()));
 
@@ -160,7 +160,7 @@ ModifierDefinition: Box<FunctionDefinition> = {
 ConstructorDefinition: Box<FunctionDefinition> = {
     <ty:FunctionTy> <name:Identifier?> <params:ParameterList>
     <attributes:FunctionAttribute*>
-    <returns:(returns ParameterList)?> <body:BlockStatementOrSemiColon> => {
+    <returns:(Returns ParameterList)?> <body:BlockStatementOrSemiColon> => {
         let (_, returns) = returns.unwrap_or((None, Vec::new()));
 
         Box::new(FunctionDefinition{
@@ -179,6 +179,12 @@ FunctionTy: FunctionTy = {
     "fallback" => FunctionTy::Fallback,
     "receive" => FunctionTy::Receive,
     "constructor" => FunctionTy::Constructor,
+}
+
+FunctionTypeAttribute: FunctionAttribute = {
+    "immutable" => FunctionAttribute::Immutable,
+    Mutability => FunctionAttribute::Mutability(<>),
+    Visibility => FunctionAttribute::Visibility(<>),
 }
 
 BlockStatementOrSemiColon: Option<Statement> = {
@@ -291,8 +297,57 @@ OptParameter: Option<Parameter> = {
     <p:Parameter?> => <>,
 }
 
+NamedParameterList: Vec<Option<Parameter>> = {
+    "(" ")" => Vec::new(),
+    "(" <p:NamedParameter> ")" => vec!(Some(p)),
+    "(" <CommaTwo<OptNamedParameter>> ")" => <>,
+    "(" <false_token:!> ")"=> {
+        errors.push(<>);
+        Vec::new()
+    }
+}
+
+NamedParameter: Parameter = {
+    <ty:Precedence0> <storage:StorageLocation?> <name:SolIdentifier> => {
+        Parameter{ annotation: None, ty, storage, name: Some(name) }
+    },
+    <ty:Expression> => {
+        Parameter{ annotation: None, ty, storage: None, name: None }
+    }
+}
+
+OptNamedParameter: Option<Parameter> = {
+    <p:NamedParameter?> => <>,
+}
+
 ParameterAnnotation: Annotation = {
     <id:SolAnnotation> => Annotation { id, value: None }
+}
+
+Type: Type = {
+    NoFunctionType,
+}
+
+NoFunctionType: Type = {
+    "bool" => Type::Bool,
+    "address" => Type::Address,
+    "address" "payable" => Type::AddressPayable,
+    // payable is only used as a cast in solc
+    "payable" => Type::Payable,
+    "string" => Type::String,
+    "bytes" => Type::DynamicBytes,
+    Uint => Type::Uint(<>),
+    Int => Type::Int(<>),
+    Bytes => Type::Bytes(<>),
+    // prior to 0.8.0 `byte` used to be an alias for `bytes1`
+    "byte" => Type::Bytes(1),
+    "mapping" "(" <k:Precedence0> <key_name:SolIdentifier?> "=>" <v:Precedence0> <value_name:SolIdentifier?> ")" => {
+        Type::Mapping {
+            key: Box::new(k),
+            key_name,
+            value: Box::new(v),
+            value_name }
+    },
 }
 
 FunctionAttribute: FunctionAttribute = {
@@ -311,7 +366,7 @@ FunctionAttribute: FunctionAttribute = {
     },
 }
 
-returns: Option<String> = {
+Returns: Option<String> = {
     "returns" => Some("returns".to_string()),
     "return" => Some("return".to_string())
 }
@@ -448,23 +503,52 @@ Precedence0: Expression = {
 NoFunctionTyPrecedence0: Expression = {
     <e:Precedence1> "++" => Expression::PostIncrement(Box::new(e)),
     <e:Precedence1> "--" => Expression::PostDecrement(Box::new(e)),
+    <FunctionCall> => <>,
     <e:Precedence1> "[" <i:Expression?> "]" => Expression::ArraySubscript(Box::new(e), i.map(Box::new)),
     <e:Precedence1> "[" <l:Expression?> ":" <r:Expression?> "]" => Expression::ArraySlice(Box::new(e), l.map(Box::new), r.map(Box::new)),
     <e:Precedence1> "." <i:SolIdentifier> => Expression::MemberAccess(Box::new(e), i),
     // Solidity has ".address" members on external function types. Address is a keyword, so special casing needed
     <e:Precedence1> "." "address" => {
         Expression::MemberAccess(Box::new(e),
-            Identifier{ name: "address".to_string() })
+            Identifier { name: "address".to_string() })
     },
     <e:Precedence1> "." "new" => {
         Expression::MemberAccess(Box::new(e),
-            Identifier{ name: "new".to_string() })
+            Identifier { name: "new".to_string() })
     },
+    <ty:NoFunctionType> => Expression::Type(ty),
     "[" <v:Comma<Expression>> "]" => {
         Expression::ArrayLiteral(v)
     },
     <SolNoRevertIdentifier> => Expression::Variable(<>),
+    <a:NamedParameterList> => {
+        if a.len() == 1 {
+            if let Some(Parameter{ ty, storage: None, name: None, .. }) = &a[0] {
+                // this means "(" Expression ")"
+                return Expression::Parenthesis(Box::new(ty.clone()));
+            }
+        }
+
+        Expression::List(a)
+    },
     LiteralExpression
+}
+
+FunctionCall: Expression = {
+    <i:FunctionCallPrecedence> "(" <v:Comma<Expression>> ")" => {
+        Expression::FunctionCall(Box::new(i), v)
+    },
+    <i:FunctionCallPrecedence> <block:BlockStatement> => {
+        Expression::FunctionCallBlock(Box::new(i), Box::new(block))
+    },
+    <i:FunctionCallPrecedence> "(" "{" <v:Comma<NamedArgument>> "}" ")" => {
+        Expression::NamedFunctionCall(Box::new(i), v)
+    },
+}
+
+FunctionCallPrecedence: Expression = {
+    NoFunctionTyPrecedence0,
+    "type" => Expression::Variable(Identifier{ name: "type".to_string() }),
 }
 
 NamedArgument: NamedArgument = {
