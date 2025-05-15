@@ -21,6 +21,7 @@ use crate::{ast::SourceUnit, error::ParseError, lexer::Lexer};
 lalrpop_mod!(
     #[allow(clippy::ptr_arg)]
     #[allow(clippy::type_complexity)]
+    #[allow(clippy::large_enum_variant)]
     grammar
 );
 
