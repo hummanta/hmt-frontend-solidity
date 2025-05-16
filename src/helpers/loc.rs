@@ -29,6 +29,14 @@ impl OptionalCodeLocation for ast::Visibility {
     }
 }
 
+impl OptionalCodeLocation for ast::StorageType {
+    fn loc_opt(&self) -> Option<Loc> {
+        match self {
+            Self::Persistent(l) | Self::Temporary(l) | Self::Instance(l) => *l,
+        }
+    }
+}
+
 impl OptionalCodeLocation for ast::SourceUnit {
     #[inline]
     fn loc_opt(&self) -> Option<Loc> {
@@ -49,13 +57,13 @@ impl<T: CodeLocation> OptionalCodeLocation for Vec<T> {
     }
 }
 
-impl<T: ?Sized + OptionalCodeLocation> OptionalCodeLocation for &'_ T {
+impl<T: ?Sized + OptionalCodeLocation> OptionalCodeLocation for &T {
     fn loc_opt(&self) -> Option<Loc> {
         (**self).loc_opt()
     }
 }
 
-impl<T: ?Sized + OptionalCodeLocation> OptionalCodeLocation for &'_ mut T {
+impl<T: ?Sized + OptionalCodeLocation> OptionalCodeLocation for &mut T {
     fn loc_opt(&self) -> Option<Loc> {
         (**self).loc_opt()
     }
@@ -164,13 +172,13 @@ impl CodeLocation for Loc {
     }
 }
 
-impl<T: ?Sized + CodeLocation> CodeLocation for &'_ T {
+impl<T: ?Sized + CodeLocation> CodeLocation for &T {
     fn loc(&self) -> Loc {
         (**self).loc()
     }
 }
 
-impl<T: ?Sized + CodeLocation> CodeLocation for &'_ mut T {
+impl<T: ?Sized + CodeLocation> CodeLocation for &mut T {
     fn loc(&self) -> Loc {
         (**self).loc()
     }
@@ -394,8 +402,8 @@ impl_for_enums! {
         Self::TypeDefinition(ref l, ..) => l.loc(),
         Self::Annotation(ref l, ..) => l.loc(),
         Self::Using(ref l, ..) => l.loc(),
-        Self::PragmaDirective(l, ..)
-        | Self::StraySemicolon(l, ..) => l,
+        Self::PragmaDirective(ref l, ..) => l.loc(),
+        Self::StraySemicolon(l, ..) => l,
     }
 
     ast::Statement: match self {
@@ -432,6 +440,7 @@ impl_for_enums! {
 
     ast::VariableAttribute: match self {
         Self::Visibility(ref l, ..) => l.loc_opt().unwrap_or_default(),
+        Self::StorageType(ref l, ..) => l.loc_opt().unwrap_or_default(),
         Self::Constant(l, ..)
         | Self::Immutable(l, ..)
         | Self::Override(l, ..) => l,
@@ -466,6 +475,12 @@ impl_for_enums! {
     ast::YulSwitchOptions: match self {
         Self::Case(l, ..)
         | Self::Default(l, ..) => l,
+    }
+
+    ast::PragmaDirective: match self {
+        Self::Identifier(l, ..)
+        | Self::StringLiteral(l, ..)
+        | Self::Version(l, ..) => l,
     }
 
     // other

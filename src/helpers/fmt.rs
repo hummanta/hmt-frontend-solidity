@@ -4,7 +4,7 @@
 //!
 //! [ref]: https://docs.soliditylang.org/en/latest/style-guide.html
 
-use crate::ast;
+use crate::ast::{self, StorageType};
 use std::{
     borrow::Cow,
     fmt::{Display, Formatter, Result, Write},
@@ -803,14 +803,79 @@ impl Display for ast::SourceUnitPart {
             Self::TypeDefinition(inner) => inner.fmt(f),
             Self::Annotation(inner) => inner.fmt(f),
             Self::Using(inner) => inner.fmt(f),
-            Self::PragmaDirective(_, ident, lit) => {
+            Self::PragmaDirective(inner) => inner.fmt(f),
+            Self::StraySemicolon(_) => f.write_char(';'),
+        }
+    }
+}
+
+impl Display for ast::PragmaDirective {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        match self {
+            Self::Identifier(_, ident, val) => {
                 f.write_str("pragma")?;
                 write_opt!(f, ' ', ident);
-                // this isn't really a string literal, it's just parsed as one by the lexer
-                write_opt!(f, ' ', lit.as_ref().map(|lit| &lit.string));
+                write_opt!(f, ' ', val);
                 f.write_char(';')
             }
-            Self::StraySemicolon(_) => f.write_char(';'),
+            Self::StringLiteral(_, ident, lit) => {
+                f.write_str("pragma ")?;
+                ident.fmt(f)?;
+                f.write_char(' ')?;
+                lit.fmt(f)?;
+                f.write_char(';')
+            }
+            Self::Version(_, ident, versions) => {
+                f.write_str("pragma ")?;
+                ident.fmt(f)?;
+                f.write_char(' ')?;
+                write_separated(versions, f, " ")?;
+                f.write_char(';')
+            }
+        }
+    }
+}
+
+impl Display for ast::VersionComparator {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        match self {
+            Self::Plain { version, .. } => write_separated(version, f, "."),
+            Self::Operator { op, version, .. } => {
+                op.fmt(f)?;
+                write_separated(version, f, ".")
+            }
+            Self::Range { from, to, .. } => {
+                write_separated(from, f, ".")?;
+                f.write_str(" - ")?;
+                write_separated(to, f, ".")
+            }
+            Self::Or { left, right, .. } => {
+                left.fmt(f)?;
+                f.write_str(" || ")?;
+                right.fmt(f)
+            }
+        }
+    }
+}
+
+impl Display for ast::VersionOp {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl ast::VersionOp {
+    /// Returns the string representation of this type.
+    pub const fn as_str(&self) -> &'static str {
+        match self {
+            Self::Exact => "=",
+            Self::Greater => ">",
+            Self::GreaterEq => ">=",
+            Self::Less => "<",
+            Self::LessEq => "<=",
+            Self::Tilde => "~",
+            Self::Caret => "^",
+            Self::Wildcard => "*",
         }
     }
 }
@@ -858,7 +923,10 @@ impl Display for ast::Statement {
                 f.write_str(") ")?;
                 block.fmt(f)
             }
-            Self::Expression(_, expr) => expr.fmt(f),
+            Self::Expression(_, expr) => {
+                expr.fmt(f)?;
+                f.write_char(';')
+            }
             Self::VariableDefinition(_, var, expr) => {
                 var.fmt(f)?;
                 write_opt!(f, " = ", expr);
@@ -1028,6 +1096,7 @@ impl Display for ast::UserDefinedOperator {
         f.write_str(self.as_str())
     }
 }
+
 impl ast::UserDefinedOperator {
     /// Returns the string representation of this type.
     pub const fn as_str(&self) -> &'static str {
@@ -1081,6 +1150,11 @@ impl Display for ast::VariableAttribute {
                 }
                 Ok(())
             }
+            Self::StorageType(storage) => match storage {
+                StorageType::Instance(_) => f.write_str("instance"),
+                StorageType::Temporary(_) => f.write_str("temporary"),
+                StorageType::Persistent(_) => f.write_str("persistent"),
+            },
         }
     }
 }
@@ -1206,7 +1280,7 @@ impl Display for ast::YulSwitchOptions {
 // These functions are private so they should be inlined by the compiler.
 // We provided these `#[inline]` hints regardless because we don't expect compile time penalties
 // or other negative impacts from them.
-// See: <https://github.com/hyperledger/solang/pull/1237#discussion_r1151557453>
+// See: <https://github.com/hyperledger-solang/solang/pull/1237#discussion_r1151557453>
 #[inline]
 fn fmt_parameter_list(list: &ast::ParameterList, f: &mut Formatter<'_>) -> Result {
     let iter = list.iter().flat_map(|(_, param)| param);
@@ -1354,6 +1428,44 @@ mod tests {
                 unicode: false,
                 string: concat!( $($l),+ ).to_string(),
             }
+        };
+    }
+
+    /// VersionComparsion
+    macro_rules! version {
+        ($($l:literal),+) => {
+            <[_]>::into_vec(Box::new([ $( $l.into() ),+ ]))
+        }
+    }
+
+    macro_rules! plain_version {
+        ($($l:literal),+) => {
+            ast::VersionComparator::Plain {
+                loc: loc!(),
+                version: <[_]>::into_vec(Box::new([ $( $l.into() ),+ ])),
+            }
+        };
+    }
+
+    macro_rules! op_version {
+        ($op:expr, $($l:literal),+) => {
+            ast::VersionComparator::Operator {
+                loc: loc!(),
+                op: $op,
+                version: <[_]>::into_vec(Box::new([ $( $l.into() ),+ ])),
+            }
+        };
+    }
+
+    macro_rules! range_version {
+        ($from:expr, $to:expr) => {
+            ast::VersionComparator::Range { loc: loc!(), from: $from, to: $to }
+        };
+    }
+
+    macro_rules! or_version {
+        ($left:expr, $right:expr) => {
+            ast::VersionComparator::Or { loc: loc!(), left: $left.into(), right: $right.into() }
         };
     }
 
@@ -1796,6 +1908,7 @@ mod tests {
             } => "event name() anonymous;",
 
             ast::FunctionDefinition {
+                loc_prototype: loc!(),
                 ty: ast::FunctionTy::Function,
                 name: Some(id("name")),
                 name_loc: loc!(),
@@ -1806,6 +1919,7 @@ mod tests {
                 body: None,
             } => "function name();",
             ast::FunctionDefinition {
+                loc_prototype: loc!(),
                 ty: ast::FunctionTy::Function,
                 name: Some(id("name")),
                 name_loc: loc!(),
@@ -1816,6 +1930,7 @@ mod tests {
                 body: Some(stmt!({})),
             } => "function name() {}",
             ast::FunctionDefinition {
+                loc_prototype: loc!(),
                 ty: ast::FunctionTy::Function,
                 name: Some(id("name")),
                 name_loc: loc!(),
@@ -1826,6 +1941,7 @@ mod tests {
                 body: Some(stmt!({})),
             } => "function name() returns (uint256) {}",
             ast::FunctionDefinition {
+                loc_prototype: loc!(),
                 ty: ast::FunctionTy::Function,
                 name: Some(id("name")),
                 name_loc: loc!(),
@@ -2203,12 +2319,27 @@ mod tests {
             ast::SourceUnitPart: {
                 // rest tested individually
 
-                ast::SourceUnitPart::PragmaDirective(loc!(), None, None) => "pragma;",
-                ast::SourceUnitPart::PragmaDirective(loc!(), Some(id("solidity")), None)
+                ast::SourceUnitPart::PragmaDirective(ast::PragmaDirective::Identifier(loc!(), None, None).into()) => "pragma;",
+                ast::SourceUnitPart::PragmaDirective(ast::PragmaDirective::Identifier(loc!(), Some(id("solidity")), None).into())
                     => "pragma solidity;",
-                ast::SourceUnitPart::PragmaDirective(loc!(), Some(id("solidity")), Some(lit!("0.8.0")))
+                ast::SourceUnitPart::PragmaDirective(ast::PragmaDirective::StringLiteral(loc!(), id("abi"), lit!("v2")).into())
+                    => "pragma abi \"v2\";",
+                ast::SourceUnitPart::PragmaDirective(ast::PragmaDirective::Version(loc!(), id("solidity"), vec![plain_version!("0", "8", "0")]).into())
                     => "pragma solidity 0.8.0;",
-
+                ast::SourceUnitPart::PragmaDirective(ast::PragmaDirective::Version(loc!(), id("solidity"), vec![
+                    op_version!(ast::VersionOp::Exact, "0", "5", "16"),
+                    op_version!(ast::VersionOp::GreaterEq, "0", "5"),
+                    op_version!(ast::VersionOp::Greater, "0"),
+                    op_version!(ast::VersionOp::Less, "1"),
+                    op_version!(ast::VersionOp::LessEq, "1"),
+                    op_version!(ast::VersionOp::Caret, "0", "5", "16"),
+                    op_version!(ast::VersionOp::Wildcard, "5", "5")]
+                ).into())
+                    => "pragma solidity =0.5.16 >=0.5 >0 <1 <=1 ^0.5.16 *5.5;",
+                ast::SourceUnitPart::PragmaDirective(ast::PragmaDirective::Version(loc!(), id("solidity"), vec![or_version!(plain_version!("0"), op_version!(ast::VersionOp::Caret, "1", "0"))]).into())
+                    => "pragma solidity 0 || ^1.0;",
+                ast::SourceUnitPart::PragmaDirective(ast::PragmaDirective::Version(loc!(), id("solidity"), vec![range_version!(version!["0"], version!["1", "0"])]).into())
+                    => "pragma solidity 0 - 1.0;",
                 ast::SourceUnitPart::StraySemicolon(loc!()) => ";",
             }
 
@@ -2259,7 +2390,7 @@ mod tests {
 
                 ast::Statement::While(loc!(), expr!(true), Box::new(stmt!({}))) => "while (true) {}",
 
-                ast::Statement::Expression(loc!(), expr!(true)) => "true",
+                ast::Statement::Expression(loc!(), expr!(true)) => "true;",
 
                 ast::Statement::VariableDefinition(loc!(), ast::VariableDeclaration {
                     loc: loc!(),

@@ -366,7 +366,7 @@ pub enum SourceUnitPart {
     /// `pragma <1> <2>;`
     ///
     /// `1` and `2` are `None` only if an error occurred during parsing.
-    PragmaDirective(Loc, Option<Identifier>, Option<StringLiteral>),
+    PragmaDirective(Box<PragmaDirective>),
 
     /// An import directive.
     ImportDirective(Import),
@@ -593,6 +593,80 @@ pub enum ContractPart {
 
     /// A stray semicolon.
     StraySemicolon(Loc),
+}
+
+/// A pragma directive
+#[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub enum PragmaDirective {
+    /// pragma a b;
+    Identifier(Loc, Option<Identifier>, Option<Identifier>),
+    /// pragma a "b";
+    StringLiteral(Loc, Identifier, StringLiteral),
+    /// pragma version =0.5.16;
+    Version(Loc, Identifier, Vec<VersionComparator>),
+}
+
+/// A `version` list
+#[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub enum VersionComparator {
+    /// 0.8.22
+    Plain {
+        /// The code location.
+        loc: Loc,
+        /// List of versions: major, minor, patch. minor and patch are optional
+        version: Vec<String>,
+    },
+    /// =0.5.16
+    Operator {
+        /// The code location.
+        loc: Loc,
+        /// Semver comparison operator
+        op: VersionOp,
+        /// version number
+        version: Vec<String>,
+    },
+    /// foo || bar
+    Or {
+        /// The code location.
+        loc: Loc,
+        /// left part
+        left: Box<VersionComparator>,
+        /// right part
+        right: Box<VersionComparator>,
+    },
+    /// 0.7.0 - 0.8.22
+    Range {
+        /// The code location.
+        loc: Loc,
+        /// start of range
+        from: Vec<String>,
+        /// end of range
+        to: Vec<String>,
+    },
+}
+
+/// Comparison operator
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub enum VersionOp {
+    /// `=`
+    Exact,
+    /// `>`
+    Greater,
+    /// `>=`
+    GreaterEq,
+    /// `<`
+    Less,
+    /// `<=`
+    LessEq,
+    /// `~`
+    Tilde,
+    /// `^`
+    Caret,
+    /// `*`
+    Wildcard,
 }
 
 /// A `using` list. See [Using].
@@ -894,6 +968,24 @@ pub enum VariableAttribute {
 
     /// `ovveride(<1>,*)`
     Override(Loc, Vec<IdentifierPath>),
+
+    /// Storage type.
+    StorageType(StorageType),
+}
+
+/// Soroban storage types.
+#[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[repr(u8)] // for cmp; order of variants is important
+pub enum StorageType {
+    /// `Temporary`
+    Temporary(Option<Loc>),
+
+    /// `persistent`
+    Persistent(Option<Loc>),
+
+    /// `Instance`
+    Instance(Option<Loc>),
 }
 
 /// A variable definition.
@@ -1110,8 +1202,8 @@ pub enum Expression {
     HexLiteral(Vec<HexLiteral>),
     /// `0x[a-fA-F0-9]{40}`
     ///
-    /// This [should be correctly checksummed][ref], but it currently isn't being enforced in the
-    /// parser.
+    /// This [should be correctly checksummed][ref],
+    /// but it currently isn't being enforced in the parser.
     ///
     /// [ref]: https://docs.soliditylang.org/en/latest/types.html#address-literals
     AddressLiteral(Loc, String),
@@ -1414,6 +1506,8 @@ pub enum FunctionTy {
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct FunctionDefinition {
+    /// The function prototype location.
+    pub loc_prototype: Loc,
     /// The code location.
     pub loc: Loc,
     /// The function type.

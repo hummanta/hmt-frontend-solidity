@@ -17,7 +17,7 @@ pub SourceUnit: SourceUnit = {
 
 SourceUnitPart: SourceUnitPart = {
     ContractDefinition => SourceUnitPart::ContractDefinition(<>),
-    PragmaDirective => <>,
+    PragmaDirective => SourceUnitPart::PragmaDirective(<>.into()),
     ImportDirective => <>,
     EnumDefinition => SourceUnitPart::EnumDefinition(<>),
     StructDefinition => SourceUnitPart::StructDefinition(<>),
@@ -70,13 +70,69 @@ ImportRename: (Identifier, Option<Identifier>) = {
     <from:SolIdentifier> "as" <to:SolIdentifier> => (from, Some(to)),
 }
 
-PragmaDirective: SourceUnitPart = {
-    // The lexer does special parsing for String literal; it isn't really a string literal
-    <l:@L> "pragma" <i:SolIdentifier> <s:StringLiteral> <r:@R> ";" => SourceUnitPart::PragmaDirective(Loc::File(no, l, r), Some(i), Some(s)) ,
+PragmaDirective: PragmaDirective = {
+    <l:@L> "pragma" <i:SolIdentifier> <s:Identifier> <r:@R> ";" => {
+        PragmaDirective::Identifier(Loc::File(no, l, r), Some(i), Some(s))
+    },
+    <l:@L> "pragma" <i:SolIdentifier> <s:StringLiteral> <r:@R> ";" => {
+        PragmaDirective::StringLiteral(Loc::File(no, l, r), i, s)
+    },
+    <l:@L> "pragma" <i:SolIdentifier> <comp:VersionComparator1+> <r:@R> ";" => {
+        PragmaDirective::Version(Loc::File(no, l, r), i, comp)
+    },
     <l:@L> "pragma" <false_token:!> <r:@R> ";" => {
         errors.push(false_token);
-        SourceUnitPart::PragmaDirective(Loc::File(no, l, r), None, None)
+        PragmaDirective::Identifier(Loc::File(no, l, r), None, None)
+    }
+}
+
+VersionComparator1: VersionComparator = {
+    <l:@L> <left:VersionComparator1> "||" <right:VersionComparator> <r:@R> => VersionComparator::Or {
+        loc: Loc::File(no, l, r),
+        left: left.into(),
+        right: right.into()
     },
+    VersionComparator
+}
+
+VersionComparator: VersionComparator = {
+    <l:@L> <version:Version> <r:@R> => VersionComparator::Plain {
+        loc: Loc::File(no, l, r),
+        version
+    },
+    <l:@L> <op:VersionOp> <version:Version> <r:@R> => VersionComparator::Operator {
+        loc: Loc::File(no, l, r),
+        op,
+        version
+    },
+    <l:@L> <from:Version> "-" <to:Version> <r:@R> => VersionComparator::Range {
+        loc: Loc::File(no, l, r),
+        from,
+        to
+    },
+}
+
+Version: Vec<String> = {
+    <major:number> <minors:("." <number>)*> => {
+        let mut v = minors;
+
+        v.insert(0, major);
+
+        v.into_iter().map(|s| {
+            let (number, _) = parse_number(s); number
+        }).collect()
+    }
+}
+
+VersionOp: VersionOp = {
+    "=" => VersionOp::Exact,
+    ">" => VersionOp::Greater,
+    ">=" => VersionOp::GreaterEq,
+    "<" => VersionOp::Less,
+    "<=" => VersionOp::LessEq,
+    "~" => VersionOp::Tilde,
+    "^" => VersionOp::Caret,
+    "*" => VersionOp::Wildcard,
 }
 
 Type: Type = {
@@ -312,8 +368,15 @@ Visibility: Visibility = {
     <l:@L> "private" <r:@R> => Visibility::Private(Some(Loc::File(no, l, r))),
 }
 
+StorageType: StorageType = {
+    <l:@L> "persistent" <r:@R> => StorageType::Persistent(Some(Loc::File(no, l, r))),
+    <l:@R> "temporary" <r:@R> => StorageType::Temporary(Some(Loc::File(no, l, r))),
+    <l:@R> "instance" <r:@R> => StorageType::Instance(Some(Loc::File(no, l, r))),
+}
+
 VariableAttribute: VariableAttribute = {
     Visibility => VariableAttribute::Visibility(<>),
+    StorageType => VariableAttribute::StorageType(<>),
     <l:@L> "constant" <r:@R> => VariableAttribute::Constant(Loc::File(no, l, r)),
     <l:@L> "immutable" <r:@R> => VariableAttribute::Immutable(Loc::File(no, l, r)),
     <l:@L> "override" <r:@R> => VariableAttribute::Override(Loc::File(no, l, r), Vec::new()),
@@ -639,11 +702,12 @@ returns: Option<Loc> = {
 ModifierDefinition: Box<FunctionDefinition> = {
     <l:@L> "modifier" <nl:@L> <name:SolIdentifier> <nr:@R> <params:ParameterList?>
     <attributes:FunctionAttribute*>
-    <returns:(returns ParameterList)?> <r:@R> <body:BlockStatementOrSemiColon> => {
+    <returns:(returns ParameterList)?> <pr:@R> <body:BlockStatementOrSemiColon> <r:@R> => {
         let params = params.unwrap_or(Vec::new());
         let (return_not_returns, returns) = returns.unwrap_or((None, Vec::new()));
 
         Box::new(FunctionDefinition{
+            loc_prototype: Loc::File(no, l, pr),
             loc: Loc::File(no, l, r),
             ty: FunctionTy::Modifier,
             name: Some(name),
@@ -660,10 +724,11 @@ ModifierDefinition: Box<FunctionDefinition> = {
 ConstructorDefinition: Box<FunctionDefinition> = {
     <l:@L> <ty:FunctionTy> <nl:@L> <name:SolIdentifier?> <nr:@R> <params:ParameterList>
     <attributes:FunctionAttribute*>
-    <returns:(returns ParameterList)?> <r:@R> <body:BlockStatementOrSemiColon> => {
+    <returns:(returns ParameterList)?> <pr:@R> <body:BlockStatementOrSemiColon> <r:@R> => {
         let (return_not_returns, returns) = returns.unwrap_or((None, Vec::new()));
 
         Box::new(FunctionDefinition{
+            loc_prototype: Loc::File(no, l, pr),
             loc: Loc::File(no, l, r),
             ty,
             name,
@@ -680,10 +745,11 @@ ConstructorDefinition: Box<FunctionDefinition> = {
 FunctionDefinition: Box<FunctionDefinition> = {
     <l:@L> "function" <nl:@L> <name:SolIdentifierOrError> <nr:@R> <params:ParameterList>
     <attributes:FunctionAttribute*>
-    <returns:(returns ParameterList)?> <r:@R> <body:BlockStatementOrSemiColon> => {
+    <returns:(returns ParameterList)?> <pr:@R> <body:BlockStatementOrSemiColon> <r:@R> => {
         let (return_not_returns, returns) = returns.unwrap_or((None, Vec::new()));
 
         Box::new(FunctionDefinition{
+            loc_prototype: Loc::File(no, l, pr),
             loc: Loc::File(no, l, r),
             ty: FunctionTy::Function,
             name,
@@ -697,23 +763,21 @@ FunctionDefinition: Box<FunctionDefinition> = {
     },
     // Old-style fallback function without name. Sema will give a nice error message
     // with some instructions how to update your syntax
-    <l:@L> <ft:FunctionType> <r:@R> <body:BlockStatementOrSemiColon> => {
+    <l:@L> <ft:FunctionType> <pr:@R> <body:BlockStatementOrSemiColon> <r:@R> => {
         match ft {
             // we're dropping the trailing attributes, but this production is for
             // generating an error messages
             Type::Function { params, attributes, returns, .. } => {
                 Box::new(FunctionDefinition{
+                    loc_prototype: Loc::File(no, l, pr),
                     loc: Loc::File(no, l, r),
                     ty: FunctionTy::Function,
                     name: None,
-                    name_loc: Loc::File(no, l, r),
+                    name_loc: Loc::File(no, l, pr),
                     params,
                     attributes,
                     return_not_returns: None,
-                    returns: match returns {
-                        Some((returns, _)) => returns,
-                        None => Vec::new(),
-                    },
+                    returns: returns.map(|(v, _)| v).unwrap_or_default(),
                     body,
                 })
             },
@@ -1262,5 +1326,8 @@ extern {
         "switch" => Token::Switch,
         "case" => Token::Case,
         "default" => Token::Default,
+        "persistent" => Token::Persistent,
+        "temporary" => Token::Temporary,
+        "instance" => Token::Instance,
     }
 }

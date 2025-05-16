@@ -1,6 +1,8 @@
 # hmt-frontend-solidity
 
-Parsing the Solidity source code and generating the Cranelift IR
+Parsing the Solidity source code and generating the Cranelift IR,
+This parser is compatible with Ethereum Solidity
+[v0.8.22](https://docs.soliditylang.org/en/v0.8.22/grammar.html).
 
 ## Installation
 
