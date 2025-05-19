@@ -15,6 +15,7 @@
 pub mod args;
 pub mod ast;
 pub mod codegen;
+pub mod diagnostics;
 pub mod emit;
 pub mod error;
 pub mod helpers;
