@@ -16,7 +16,7 @@ use std::iter::once;
 
 use lalrpop_util::lalrpop_mod;
 
-use crate::{ast::SourceUnit, error::ParseError, lexer::Lexer};
+use crate::{ast::SourceUnit, diagnostics::Diagnostic, lexer::Lexer};
 
 lalrpop_mod!(
     #[allow(clippy::ptr_arg)]
@@ -28,16 +28,16 @@ lalrpop_mod!(
 pub use grammar::*;
 
 /// Parses source into SourceUnit or returns syntax errors
-pub fn parse(source: &str, no: usize) -> Result<SourceUnit, Vec<ParseError>> {
+pub fn parse(source: &str, no: usize) -> Result<SourceUnit, Vec<Diagnostic>> {
     let lexer = Lexer::new(source);
     let parser = grammar::SourceUnitParser::new();
     let mut errors = Vec::new(); // Collected during parse
 
     parser.parse(source, no, &mut errors, lexer).map_err(|err| {
         errors
-            .into_iter() // Take errors
-            .map(Into::into) // Convert type
-            .chain(once(err.into())) // Add final error
+            .into_iter()
+            .map(|err| Diagnostic::from((&err.error, no)))
+            .chain(once(Diagnostic::from((&err, no))))
             .collect()
     })
 }

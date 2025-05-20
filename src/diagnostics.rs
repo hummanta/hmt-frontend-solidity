@@ -14,9 +14,13 @@
 
 //! Solidity parser diagnostics.
 
+use std::ops::Range;
+
+use ariadne::{Cache, Label, Report, ReportKind, Span};
+use lalrpop_util::ParseError;
 use strum::{AsRefStr, Display, EnumString};
 
-use crate::ast::Loc;
+use crate::{ast::Loc, error::LexicalError, helpers::CodeLocation, token::Token};
 
 /// The level of a diagnostic.
 #[derive(Clone, Debug, Hash, PartialOrd, Ord, PartialEq, Eq, EnumString, AsRefStr, Display)]
@@ -79,6 +83,7 @@ pub struct Diagnostic {
 }
 
 impl Diagnostic {
+    #[inline]
     /// Create a new builder for Diagnostic.
     pub fn builder(loc: Loc, level: Level) -> DiagnosticBuilder {
         DiagnosticBuilder::new(loc, level)
@@ -157,5 +162,92 @@ impl DiagnosticBuilder {
             message: self.message,
             notes: self.notes,
         }
+    }
+}
+
+/// Convert lalrop parser error to a Diagnostic
+impl<'input> From<(&ParseError<usize, Token<'input>, LexicalError>, usize)> for Diagnostic {
+    fn from((error, no): (&ParseError<usize, Token<'input>, LexicalError>, usize)) -> Self {
+        match error {
+            ParseError::InvalidToken { location } => {
+                Diagnostic::builder(Loc::File(no, *location, *location), Level::Error)
+                    .ty(ErrorType::ParserError)
+                    .message("invalid token")
+                    .build()
+            }
+            ParseError::UnrecognizedToken { token: (l, token, r), expected } => {
+                Diagnostic::builder(Loc::File(no, *l, *r), Level::Error)
+                    .ty(ErrorType::ParserError)
+                    .message(format!(
+                        "unrecognised token '{}', expected {}",
+                        token,
+                        expected.join(", ")
+                    ))
+                    .build()
+            }
+            ParseError::User { error } => Diagnostic::builder(error.loc(), Level::Error)
+                .ty(ErrorType::ParserError)
+                .message(error.to_string())
+                .build(),
+            ParseError::ExtraToken { token } => {
+                Diagnostic::builder(Loc::File(no, token.0, token.2), Level::Error)
+                    .ty(ErrorType::ParserError)
+                    .message(format!("extra token '{}' encountered", token.0))
+                    .build()
+            }
+            ParseError::UnrecognizedEof { expected, location } => {
+                Diagnostic::builder(Loc::File(no, *location, *location), Level::Error)
+                    .ty(ErrorType::ParserError)
+                    .message(format!("unexpected end of file, expecting {}", expected.join(", ")))
+                    .build()
+            }
+        }
+    }
+}
+
+/// Convert Diagnostic to ariadne::Report
+impl<'a> From<&Diagnostic> for Report<'a, Range<usize>> {
+    fn from(val: &Diagnostic) -> Self {
+        // Initialize report builder with level and location
+        let mut report = Report::build(
+            match val.level {
+                Level::Debug => ReportKind::Advice,
+                Level::Info => ReportKind::Advice,
+                Level::Warning => ReportKind::Warning,
+                Level::Error => ReportKind::Error,
+            },
+            val.loc.range(),
+        )
+        .with_message(&val.message);
+
+        // Initialize labels vector
+        let mut labels = Vec::new();
+        for note in &val.notes {
+            labels.push(Label::new(note.loc.range()).with_message(&note.message));
+        }
+        report = report.with_labels(labels);
+
+        // Finish building report
+        report.finish()
+    }
+}
+
+/// Extension trait for writing ariadne reports to strings.
+pub trait ReportToStringExt<'a, S: Span> {
+    /// Write the report to a string.
+    fn write_to_string<C: Cache<S::SourceId>>(
+        &self,
+        cache: C,
+    ) -> Result<String, Box<dyn std::error::Error>>;
+}
+
+impl<'a, S: Span> ReportToStringExt<'a, S> for Report<'a, S> {
+    fn write_to_string<C: Cache<S::SourceId>>(
+        &self,
+        cache: C,
+    ) -> Result<String, Box<dyn std::error::Error>> {
+        let mut vec = Vec::new();
+        self.write(cache, &mut vec)?;
+        Ok(String::from_utf8(vec)?)
     }
 }

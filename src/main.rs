@@ -14,10 +14,11 @@
 
 use std::{fs, process};
 
-use anyhow::{bail, Context, Result};
+use anyhow::{anyhow, Context, Result};
+use ariadne::{Report, Source};
 use clap::Parser as _;
 
-use hmt_frontend_solidity::{args::Args, codegen::Codegen, parser};
+use hmt_frontend_solidity::{args::Args, codegen::Codegen, diagnostics::ReportToStringExt, parser};
 
 fn main() {
     if let Err(e) = run() {
@@ -32,21 +33,27 @@ fn run() -> Result<()> {
     let source = fs::read_to_string(&args.input)
         .context(format!("Failed to read input file: {}", args.input.display()))?;
 
-    let ast = match parser::parse(&source, 0) {
-        Ok(ast) => ast,
-        Err(errors) => {
-            let reports = errors
-                .iter()
-                .map(|err| err.report(&source).context("Failed to generate error report"))
-                .collect::<Result<Vec<_>, _>>()?;
-            bail!("Parsing failed with {} errors:\n{}", errors.len(), reports.join("\n"));
+    // Parse the Solidity source code into an abstract syntax tree (AST).
+    // If parsing fails, collect and format all diagnostics into error reports.
+    let ast = parser::parse(&source, 0).map_err(|diagnostices| {
+        let mut reports = Vec::new();
+        for diagnostic in diagnostices.iter() {
+            let report = Report::from(diagnostic);
+            match report.write_to_string(Source::from(&source)) {
+                Ok(report_string) => reports.push(report_string),
+                Err(e) => return anyhow!("Failed to generate error report: {}", e),
+            }
         }
-    };
+        anyhow!("Parsing failed with {} errors:\n{}", reports.len(), reports.join("\n"))
+    })?;
 
+    // Generate the AST representation if requested
     if args.print_ast {
         println!("{ast:#?}");
     }
 
+    // Generate the intermediate representation (IR) from the AST
+    // and write it to the output file specified in the arguments
     let mut generator = Codegen::new();
     generator.gen(&ast);
     generator.write(&args.output);
