@@ -9,7 +9,7 @@ anyhow = "1.0.98"
 ariadne = { version = "0.5.1", features = ["auto-color"] }
 clap = { version = "4.5.38", features = ["derive", "env"] }
 concolor = "0.1.1"
-cranelift = { version = "0.119.0", features = ["module", "object"] }
+cranelift = { version = "0.120.0", features = ["module", "object"] }
 itertools = "0.14.0"
 lalrpop-util = "0.22.1"
 logos = "0.15.0"

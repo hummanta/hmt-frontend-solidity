@@ -14,7 +14,10 @@
 
 //! Solidity parser diagnostics.
 
-use std::ops::Range;
+use std::{
+    ops::Range,
+    slice::{Iter, IterMut},
+};
 
 use ariadne::{Cache, Label, Report, ReportKind, Span};
 use lalrpop_util::ParseError;
@@ -249,5 +252,69 @@ impl<'a, S: Span> ReportToStringExt<'a, S> for Report<'a, S> {
         let mut vec = Vec::new();
         self.write(cache, &mut vec)?;
         Ok(String::from_utf8(vec)?)
+    }
+}
+
+/// A collection of diagnostics with error tracking.
+///
+/// Maintains a list of diagnostics and tracks whether any errors are present.
+/// Provides methods for adding diagnostics and checking error status.
+#[derive(Default, Debug)]
+pub struct Diagnostics {
+    contents: Vec<Diagnostic>,
+    has_error: bool,
+}
+
+impl Diagnostics {
+    /// Creates a new empty Diagnostics collection.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Returns true if there are any diagnostics in the collection.
+    pub fn is_empty(&self) -> bool {
+        self.contents.is_empty()
+    }
+
+    /// Returns the number of diagnostics in the collection.
+    pub fn len(&self) -> usize {
+        self.contents.len()
+    }
+
+    /// Returns an iterator over the diagnostics.
+    pub fn iter(&self) -> Iter<Diagnostic> {
+        self.contents.iter()
+    }
+
+    /// Returns a mutable iterator over the diagnostics.
+    pub fn iter_mut(&mut self) -> IterMut<Diagnostic> {
+        self.contents.iter_mut()
+    }
+
+    /// Adds a diagnostic to the collection.
+    pub fn push(&mut self, diagnostic: Diagnostic) {
+        if matches!(diagnostic.level, Level::Error) {
+            self.has_error = true;
+        }
+        self.contents.push(diagnostic)
+    }
+
+    /// Extends the collection with another Diagnostics.
+    pub fn extend(&mut self, diagnostics: Diagnostics) {
+        self.has_error |= diagnostics.has_error;
+        self.contents.extend(diagnostics.contents);
+    }
+
+    /// Appends diagnostics from a vector into this collection.
+    pub fn append(&mut self, diagnostics: &mut Vec<Diagnostic>) {
+        if !self.has_error {
+            self.has_error = diagnostics.iter().any(|m| m.level == Level::Error);
+        }
+        self.contents.append(diagnostics);
+    }
+
+    /// Checks if there are any error-level diagnostics in the collection.
+    pub fn any_errors(&self) -> bool {
+        self.has_error
     }
 }
