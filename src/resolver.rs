@@ -52,6 +52,32 @@ impl FileResolver {
         self.import_paths.push((None, path.to_path_buf()));
     }
 
+    /// Add import map
+    pub fn add_import_map(&mut self, map: OsString, path: PathBuf) {
+        let map = Some(map);
+
+        if let Some((_, e)) = self.import_paths.iter_mut().find(|(k, _)| *k == map) {
+            *e = path;
+        } else {
+            self.import_paths.push((map, path));
+        }
+    }
+
+    /// Get the import path and the optional mapping corresponding to `import_no`.
+    pub fn get_import_path(&self, import_no: usize) -> Option<&(Option<OsString>, PathBuf)> {
+        self.import_paths.get(import_no)
+    }
+
+    /// Get the import paths
+    pub fn get_import_paths(&self) -> &[(Option<OsString>, PathBuf)] {
+        self.import_paths.as_slice()
+    }
+
+    /// Get the import path corresponding to a map
+    pub fn get_import_map(&self, map: &OsString) -> Option<&PathBuf> {
+        self.import_paths.iter().find(|(m, _)| m.as_ref() == Some(map)).map(|(_, pb)| pb)
+    }
+
     /// Get file with contents. This must be a file which was previously added to the cache.
     pub fn get_file_contents_and_number(&self, file: &Path) -> (Arc<str>, usize) {
         let no = self.cached_paths[file];
