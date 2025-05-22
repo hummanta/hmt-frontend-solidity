@@ -20,6 +20,7 @@ use std::{
 };
 
 use ariadne::{Cache, Label, Report, ReportKind, Span};
+use itertools::Itertools;
 use lalrpop_util::ParseError;
 use strum::{AsRefStr, Display, EnumString};
 
@@ -316,5 +317,46 @@ impl Diagnostics {
     /// Checks if there are any error-level diagnostics in the collection.
     pub fn any_errors(&self) -> bool {
         self.has_error
+    }
+
+    /// Returns all error-level diagnostics in the collection.
+    pub fn errors(&self) -> Vec<&Diagnostic> {
+        self.contents.iter().filter(|x| x.level == Level::Error).collect()
+    }
+
+    /// Returns the message of the first error-level diagnostic.
+    pub fn first_error(&self) -> String {
+        self.contents.iter().find_or_first(|&x| x.level == Level::Error).unwrap().message.to_owned()
+    }
+
+    /// Returns all warning-level diagnostics in the collection.
+    pub fn warnings(&self) -> Vec<&Diagnostic> {
+        self.contents.iter().filter(|x| x.level == Level::Warning).collect()
+    }
+
+    /// Returns the first warning-level diagnostic.
+    pub fn frist_warning(&self) -> &Diagnostic {
+        self.contents.iter().find_or_first(|&x| x.level == Level::Warning).unwrap()
+    }
+
+    /// Returns the count of warning-level diagnostics.
+    pub fn count_warnings(&self) -> usize {
+        self.contents.iter().filter(|&x| x.level == Level::Warning).count()
+    }
+
+    /// Checks if any warning-level diagnostic contains the given message.
+    pub fn warning_contains(&self, message: &str) -> bool {
+        self.warnings().iter().any(|x| x.message == message)
+    }
+
+    /// Checks if any diagnostic contains the given message.
+    pub fn contains_message(&self, message: &str) -> bool {
+        self.contents.iter().any(|x| x.message == message)
+    }
+
+    /// Sorts and deduplicates diagnostics, ensuring they're in order by location.
+    pub fn normalize(&mut self) {
+        self.contents.sort();
+        self.contents.dedup();
     }
 }
