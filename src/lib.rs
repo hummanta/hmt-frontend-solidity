@@ -21,5 +21,6 @@ pub mod error;
 pub mod helpers;
 pub mod lexer;
 pub mod parser;
+pub mod resolver;
 pub mod token;
 pub mod visitor;
