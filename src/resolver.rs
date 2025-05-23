@@ -78,6 +78,25 @@ impl FileResolver {
         self.import_paths.iter().find(|(m, _)| m.as_ref() == Some(map)).map(|(_, pb)| pb)
     }
 
+    /// Update the cache for the filename with the given contents
+    pub fn set_file_contents(&mut self, path: &str, contents: String) {
+        let pos = self.files.len();
+        let pathbuf = PathBuf::from(path);
+
+        self.files.push(ResolvedFile {
+            path: path.into(),
+            full_path: pathbuf.clone(),
+            import_no: None,
+            contents: Arc::from(contents),
+        });
+        self.cached_paths.insert(pathbuf, pos);
+    }
+
+    /// Get the file contents of `no`th file if it exists
+    pub fn get_contents_of_no(&self, no: usize) -> Option<Arc<str>> {
+        self.files.get(no).map(|f| f.contents.clone())
+    }
+
     /// Get file with contents. This must be a file which was previously added to the cache.
     pub fn get_file_contents_and_number(&self, file: &Path) -> (Arc<str>, usize) {
         let no = self.cached_paths[file];
