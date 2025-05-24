@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::{
-    ast::{self, Loc},
-    error::LexicalError,
-};
+use crate::{ast::*, error::LexicalError};
 use std::{borrow::Cow, rc::Rc, sync::Arc};
 
 /// Returns the optional code location.
@@ -18,7 +15,7 @@ impl<T: CodeLocation> OptionalCodeLocation for Option<T> {
     }
 }
 
-impl OptionalCodeLocation for ast::Visibility {
+impl OptionalCodeLocation for Visibility {
     fn loc_opt(&self) -> Option<Loc> {
         match self {
             Self::Internal(l, ..) |
@@ -29,7 +26,7 @@ impl OptionalCodeLocation for ast::Visibility {
     }
 }
 
-impl OptionalCodeLocation for ast::StorageType {
+impl OptionalCodeLocation for StorageType {
     fn loc_opt(&self) -> Option<Loc> {
         match self {
             Self::Persistent(l) | Self::Temporary(l) | Self::Instance(l) => *l,
@@ -37,7 +34,7 @@ impl OptionalCodeLocation for ast::StorageType {
     }
 }
 
-impl OptionalCodeLocation for ast::SourceUnit {
+impl OptionalCodeLocation for SourceUnit {
     #[inline]
     fn loc_opt(&self) -> Option<Loc> {
         self.0.loc_opt()
@@ -110,51 +107,51 @@ macro_rules! impl_optional_for_pt {
 
 impl_optional_for_pt!(
     // structs
-    ast::Annotation,
-    ast::Base,
-    ast::ContractDefinition,
-    ast::EnumDefinition,
-    ast::ErrorDefinition,
-    ast::ErrorParameter,
-    ast::EventDefinition,
-    ast::EventParameter,
-    ast::FunctionDefinition,
-    ast::HexLiteral,
-    ast::Identifier,
-    ast::IdentifierPath,
-    ast::NamedArgument,
-    ast::Parameter,
-    ast::StringLiteral,
-    ast::StructDefinition,
-    ast::TypeDefinition,
-    ast::Using,
-    ast::UsingFunction,
-    ast::VariableDeclaration,
-    ast::VariableDefinition,
-    ast::YulBlock,
-    ast::YulFor,
-    ast::YulFunctionCall,
-    ast::YulFunctionDefinition,
-    ast::YulSwitch,
-    ast::YulTypedIdentifier,
+    Annotation,
+    Base,
+    ContractDefinition,
+    EnumDefinition,
+    ErrorDefinition,
+    ErrorParameter,
+    EventDefinition,
+    EventParameter,
+    FunctionDefinition,
+    HexLiteral,
+    Identifier,
+    IdentifierPath,
+    NamedArgument,
+    Parameter,
+    StringLiteral,
+    StructDefinition,
+    TypeDefinition,
+    Using,
+    UsingFunction,
+    VariableDeclaration,
+    VariableDefinition,
+    YulBlock,
+    YulFor,
+    YulFunctionCall,
+    YulFunctionDefinition,
+    YulSwitch,
+    YulTypedIdentifier,
     // enums
-    ast::CatchClause,
-    ast::Comment,
-    ast::ContractPart,
-    ast::ContractTy,
-    ast::Expression,
-    ast::FunctionAttribute,
-    ast::Import,
-    ast::Loc,
-    ast::Mutability,
-    ast::SourceUnitPart,
-    ast::Statement,
-    ast::StorageLocation,
-    ast::UsingList,
-    ast::VariableAttribute,
-    ast::YulExpression,
-    ast::YulStatement,
-    ast::YulSwitchOptions,
+    CatchClause,
+    Comment,
+    ContractPart,
+    ContractTy,
+    Expression,
+    FunctionAttribute,
+    Import,
+    Loc,
+    Mutability,
+    SourceUnitPart,
+    Statement,
+    StorageLocation,
+    UsingList,
+    VariableAttribute,
+    YulExpression,
+    YulStatement,
+    YulSwitchOptions,
     // other
     LexicalError,
 );
@@ -223,33 +220,33 @@ macro_rules! impl_for_structs {
 
 // all structs except for SourceUnit
 impl_for_structs!(
-    ast::Annotation,
-    ast::Base,
-    ast::ContractDefinition,
-    ast::EnumDefinition,
-    ast::ErrorDefinition,
-    ast::ErrorParameter,
-    ast::EventDefinition,
-    ast::EventParameter,
-    ast::FunctionDefinition,
-    ast::HexLiteral,
-    ast::Identifier,
-    ast::IdentifierPath,
-    ast::NamedArgument,
-    ast::Parameter,
-    ast::StringLiteral,
-    ast::StructDefinition,
-    ast::TypeDefinition,
-    ast::Using,
-    ast::UsingFunction,
-    ast::VariableDeclaration,
-    ast::VariableDefinition,
-    ast::YulBlock,
-    ast::YulFor,
-    ast::YulFunctionCall,
-    ast::YulFunctionDefinition,
-    ast::YulSwitch,
-    ast::YulTypedIdentifier,
+    Annotation,
+    Base,
+    ContractDefinition,
+    EnumDefinition,
+    ErrorDefinition,
+    ErrorParameter,
+    EventDefinition,
+    EventParameter,
+    FunctionDefinition,
+    HexLiteral,
+    Identifier,
+    IdentifierPath,
+    NamedArgument,
+    Parameter,
+    StringLiteral,
+    StructDefinition,
+    TypeDefinition,
+    Using,
+    UsingFunction,
+    VariableDeclaration,
+    VariableDefinition,
+    YulBlock,
+    YulFor,
+    YulFunctionCall,
+    YulFunctionDefinition,
+    YulSwitch,
+    YulTypedIdentifier,
 );
 
 macro_rules! impl_for_enums {
@@ -272,19 +269,19 @@ macro_rules! impl_for_enums {
 
 // all enums except for Type, UserDefinedOperator and FunctionTy
 impl_for_enums! {
-    ast::CatchClause: match self {
+    CatchClause: match self {
         Self::Simple(l, ..)
         | Self::Named(l, ..) => l,
     }
 
-    ast::Comment: match self {
+    Comment: match self {
         Self::Line(l, ..)
         | Self::Block(l, ..)
         | Self::DocLine(l, ..)
         | Self::DocBlock(l, ..) => l,
     }
 
-    ast::ContractPart: match self {
+    ContractPart: match self {
         Self::StructDefinition(ref l, ..) => l.loc(),
         Self::EventDefinition(ref l, ..) => l.loc(),
         Self::EnumDefinition(ref l, ..) => l.loc(),
@@ -297,14 +294,14 @@ impl_for_enums! {
         Self::StraySemicolon(l, ..) => l,
     }
 
-    ast::ContractTy: match self {
+    ContractTy: match self {
         Self::Abstract(l, ..)
         | Self::Contract(l, ..)
         | Self::Library(l, ..)
         | Self::Interface(l, ..) => l,
     }
 
-    ast::Expression: match self {
+    Expression: match self {
         // literals have at least one item
         Self::StringLiteral(ref l, ..) => l.loc_opt().unwrap(),
         Self::HexLiteral(ref l, ..) => l.loc_opt().unwrap(),
@@ -367,7 +364,7 @@ impl_for_enums! {
         | Self::AddressLiteral(l, ..) => l,
     }
 
-    ast::FunctionAttribute: match self {
+    FunctionAttribute: match self {
         Self::Mutability(ref l) => l.loc(),
         Self::Visibility(ref l) => l.loc_opt().unwrap_or_default(),
         Self::Virtual(l, ..)
@@ -377,20 +374,20 @@ impl_for_enums! {
         | Self::Error(l, ..) => l,
     }
 
-    ast::Import: match self {
+    Import: match self {
         Self::GlobalSymbol(.., l)
         | Self::Plain(.., l)
         | Self::Rename(.., l) => l,
     }
 
-    ast::Mutability: match self {
+    Mutability: match self {
         Self::Constant(l, ..)
         | Self::Payable(l, ..)
         | Self::Pure(l, ..)
         | Self::View(l, ..) => l,
     }
 
-    ast::SourceUnitPart: match self {
+    SourceUnitPart: match self {
         Self::ImportDirective(ref l, ..) => l.loc(),
         Self::ContractDefinition(ref l, ..) => l.loc(),
         Self::EnumDefinition(ref l, ..) => l.loc(),
@@ -406,7 +403,7 @@ impl_for_enums! {
         Self::StraySemicolon(l, ..) => l,
     }
 
-    ast::Statement: match self {
+    Statement: match self {
         Self::Block { loc: l, .. }
         | Self::Assembly { loc: l, .. }
         | Self::Args(l, ..)
@@ -426,19 +423,19 @@ impl_for_enums! {
         | Self::Error(l, ..) => l,
     }
 
-    ast::StorageLocation: match self {
+    StorageLocation: match self {
         Self::Calldata(l, ..)
         | Self::Memory(l, ..)
         | Self::Storage(l, ..) => l,
     }
 
-    ast::UsingList: match self {
+    UsingList: match self {
         Self::Library(ref l, ..) => l.loc(),
         Self::Functions(ref l, ..) => l.loc_opt().unwrap_or_default(),
         Self::Error => panic!("an error occurred"),
     }
 
-    ast::VariableAttribute: match self {
+    VariableAttribute: match self {
         Self::Visibility(ref l, ..) => l.loc_opt().unwrap_or_default(),
         Self::StorageType(ref l, ..) => l.loc_opt().unwrap_or_default(),
         Self::Constant(l, ..)
@@ -446,7 +443,7 @@ impl_for_enums! {
         | Self::Override(l, ..) => l,
     }
 
-    ast::YulExpression: match self {
+    YulExpression: match self {
         Self::HexStringLiteral(ref l, ..) => l.loc(),
         Self::StringLiteral(ref l, ..) => l.loc(),
         Self::Variable(ref l, ..) => l.loc(),
@@ -457,7 +454,7 @@ impl_for_enums! {
         | Self::SuffixAccess(l, ..) => l,
     }
 
-    ast::YulStatement: match self {
+    YulStatement: match self {
         Self::Block(ref l, ..) => l.loc(),
         Self::FunctionDefinition(ref l, ..) => l.loc(),
         Self::FunctionCall(ref l, ..) => l.loc(),
@@ -472,12 +469,12 @@ impl_for_enums! {
         | Self::Error(l, ..) => l,
     }
 
-    ast::YulSwitchOptions: match self {
+    YulSwitchOptions: match self {
         Self::Case(l, ..)
         | Self::Default(l, ..) => l,
     }
 
-    ast::PragmaDirective: match self {
+    PragmaDirective: match self {
         Self::Identifier(l, ..)
         | Self::StringLiteral(l, ..)
         | Self::Version(l, ..) => l,
@@ -495,4 +492,168 @@ impl_for_enums! {
         | Self::MissingExponent(l) => l,
         | Self::InvalidToken => panic!("an error occurred"),
     }
+}
+
+/// Returns the code location.
+///
+/// Patched version of [`CodeLocation`]: includes the block of a [`FunctionDefinition`] in
+/// its `loc`.
+pub trait CodeLocationExt {
+    /// Returns the code location of `self`.
+    fn loc(&self) -> Loc;
+}
+
+impl<T: ?Sized + CodeLocationExt> CodeLocationExt for &'_ T {
+    fn loc(&self) -> Loc {
+        (**self).loc()
+    }
+}
+
+impl<T: ?Sized + CodeLocationExt> CodeLocationExt for &'_ mut T {
+    fn loc(&self) -> Loc {
+        (**self).loc()
+    }
+}
+
+impl<T: ?Sized + ToOwned + CodeLocationExt> CodeLocationExt for Cow<'_, T> {
+    fn loc(&self) -> Loc {
+        (**self).loc()
+    }
+}
+
+// impl<T: ?Sized + CodeLocationExt> CodeLocationExt for Box<T> {
+//     fn loc(&self) -> Loc {
+//         (**self).loc()
+//     }
+// }
+
+impl<T: ?Sized + CodeLocationExt> CodeLocationExt for Rc<T> {
+    fn loc(&self) -> Loc {
+        (**self).loc()
+    }
+}
+
+impl<T: ?Sized + CodeLocationExt> CodeLocationExt for Arc<T> {
+    fn loc(&self) -> Loc {
+        (**self).loc()
+    }
+}
+
+// FunctionDefinition patch
+impl CodeLocationExt for FunctionDefinition {
+    #[inline]
+    #[track_caller]
+    fn loc(&self) -> Loc {
+        let mut loc = self.loc;
+        if let Some(ref body) = self.body {
+            loc.use_end_from(&CodeLocation::loc(body));
+        }
+        loc
+    }
+}
+
+impl CodeLocationExt for ContractPart {
+    #[inline]
+    #[track_caller]
+    fn loc(&self) -> Loc {
+        match self {
+            Self::FunctionDefinition(f) => f.loc(),
+            _ => CodeLocation::loc(self),
+        }
+    }
+}
+
+impl CodeLocationExt for SourceUnitPart {
+    #[inline]
+    #[track_caller]
+    fn loc(&self) -> Loc {
+        match self {
+            Self::FunctionDefinition(f) => f.loc(),
+            _ => CodeLocation::loc(self),
+        }
+    }
+}
+
+impl CodeLocationExt for ImportPath {
+    fn loc(&self) -> Loc {
+        match self {
+            Self::Filename(s) => s.loc(),
+            Self::Path(i) => i.loc(),
+        }
+    }
+}
+
+impl CodeLocationExt for VersionComparator {
+    fn loc(&self) -> Loc {
+        match self {
+            Self::Range { loc, .. } => *loc,
+            Self::Or { loc, .. } => *loc,
+            Self::Plain { loc, .. } => *loc,
+            Self::Operator { loc, .. } => *loc,
+        }
+    }
+}
+macro_rules! impl_delegate {
+    ($($t:ty),+ $(,)?) => {$(
+        impl CodeLocationExt for $t {
+            #[inline]
+            #[track_caller]
+            fn loc(&self) -> Loc {
+                CodeLocation::loc(self)
+            }
+        }
+    )+};
+}
+
+impl_delegate! {
+    Annotation,
+    Base,
+    ContractDefinition,
+    EnumDefinition,
+    ErrorDefinition,
+    ErrorParameter,
+    EventDefinition,
+    EventParameter,
+    // FunctionDefinition,
+    // HexLiteral,
+    // Identifier,
+    // IdentifierPath,
+    NamedArgument,
+    Parameter,
+    // SourceUnit,
+    // StringLiteral,
+    StructDefinition,
+    TypeDefinition,
+    Using,
+    UsingFunction,
+    VariableDeclaration,
+    VariableDefinition,
+    // YulBlock,
+    // YulFor,
+    YulFunctionCall,
+    YulFunctionDefinition,
+    // YulSwitch,
+    YulTypedIdentifier,
+
+    CatchClause,
+    Comment,
+    // ContractPart,
+    ContractTy,
+    Expression,
+    FunctionAttribute,
+    // FunctionTy,
+    // Import,
+    Loc,
+    // Mutability,
+    // SourceUnitPart,
+    Statement,
+    StorageLocation,
+    // Type,
+    // UserDefinedOperator,
+    UsingList,
+    VariableAttribute,
+    // Visibility,
+    YulExpression,
+    YulStatement,
+    YulSwitchOptions,
 }

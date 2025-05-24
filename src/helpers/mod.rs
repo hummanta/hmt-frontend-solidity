@@ -5,7 +5,7 @@
 mod fmt;
 
 mod loc;
-pub use loc::{CodeLocation, OptionalCodeLocation};
+pub use loc::*;
 
 mod ord;
 
