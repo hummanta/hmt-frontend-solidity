@@ -35,7 +35,7 @@ fn run() -> Result<()> {
 
     // Parse the Solidity source code into an abstract syntax tree (AST).
     // If parsing fails, collect and format all diagnostics into error reports.
-    let ast = parser::parse(&source, 0).map_err(|diagnostices| {
+    let mut ast = parser::parse(&source, 0).map_err(|diagnostices| {
         let mut reports = Vec::new();
         for diagnostic in diagnostices.iter() {
             let report = Report::from(diagnostic);
@@ -55,7 +55,7 @@ fn run() -> Result<()> {
     // Generate the intermediate representation (IR) from the AST
     // and write it to the output file specified in the arguments
     let mut generator = Codegen::new();
-    generator.gen(&ast);
+    generator.gen(&mut ast);
     generator.write(&args.output);
 
     Ok(())

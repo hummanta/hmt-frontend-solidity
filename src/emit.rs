@@ -17,10 +17,11 @@ use std::collections::HashMap;
 use cranelift::{
     module::FuncId,
     object::ObjectModule,
-    prelude::{EntityRef, FunctionBuilder, Value, Variable},
+    prelude::{EntityRef, FunctionBuilder, Variable},
 };
+use thiserror::Error;
 
-use crate::{ast::*, visitor::Visitor};
+use crate::visitor::Visitor;
 
 pub struct EmitContext<'a> {
     pub module: &'a mut ObjectModule,
@@ -58,8 +59,9 @@ impl<'a> CraneliftEmitter<'a> {
     }
 }
 
-impl Visitor<Value> for CraneliftEmitter<'_> {
-    fn visit_source_unit(&mut self, _: &SourceUnit) -> Value {
-        todo!()
-    }
+#[derive(Debug, Error)]
+pub enum EmitterError {}
+
+impl<'a> Visitor for CraneliftEmitter<'a> {
+    type Error = EmitterError;
 }

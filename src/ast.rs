@@ -23,8 +23,6 @@
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-use crate::visitor::Visitor;
-
 /// A code location.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -348,10 +346,6 @@ impl Comment {
 pub struct SourceUnit(pub Vec<SourceUnitPart>);
 
 impl SourceUnit {
-    pub fn accept<T, V: Visitor<T>>(&self, visitor: &mut V) -> T {
-        visitor.visit_source_unit(self)
-    }
-
     pub fn iter(&self) -> impl Iterator<Item = &SourceUnitPart> {
         self.0.iter()
     }

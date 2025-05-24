@@ -29,6 +29,7 @@ use target_lexicon::Triple;
 use crate::{
     ast::SourceUnit,
     emit::{CraneliftEmitter, EmitContext},
+    visitor::Visitable,
 };
 
 pub struct Codegen {
@@ -49,14 +50,14 @@ impl Codegen {
         Self { module, ir: String::new() }
     }
 
-    pub fn gen(&mut self, program: &SourceUnit) {
+    pub fn gen(&mut self, program: &mut SourceUnit) {
         let mut module_ctx = self.module.make_context();
         let mut builder_ctx = FunctionBuilderContext::new();
         let builder = FunctionBuilder::new(&mut module_ctx.func, &mut builder_ctx);
 
         let mut ctx = EmitContext::new(&mut self.module, builder);
         let mut emitter = CraneliftEmitter::new(&mut ctx);
-        program.accept(&mut emitter);
+        let _ = program.visit(&mut emitter);
 
         self.ir.push_str(&format!("{}\n", module_ctx.func));
     }
