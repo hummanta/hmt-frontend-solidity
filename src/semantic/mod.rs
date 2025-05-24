@@ -12,16 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod args;
+pub mod analyzer;
 pub mod ast;
-pub mod codegen;
-pub mod diagnostics;
-pub mod emit;
-pub mod error;
-pub mod helpers;
-pub mod lexer;
-pub mod parser;
-pub mod resolver;
-pub mod semantic;
-pub mod token;
-pub mod visitor;
+pub mod collector;
+pub mod context;
+pub mod file;
+
+use context::Context;
+
+use crate::resolver::{FileResolver, ResolvedFile};
+
+/// Analyzes the semantic of the given source code.
+pub fn analyze(file: &ResolvedFile, resolver: &mut FileResolver, ctx: &mut Context) {
+    analyzer::analyze(file, resolver, ctx);
+
+    if !ctx.diagnostics.any_errors() {
+        // Checks for unused variables
+        // Checks for unused events
+        // Checks for unused errors
+    }
+}

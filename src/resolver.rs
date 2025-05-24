@@ -101,8 +101,9 @@ impl FileResolver {
         self.files.get(no).map(|f| f.contents.clone())
     }
 
-    /// Get file with contents. This must be a file which was previously added to the cache.
-    pub fn get_file_contents_and_number(&self, file: &Path) -> (Arc<str>, usize) {
+    /// Get file with contents and number.
+    /// This must be a file which was previously added to the cache.
+    pub fn get_file_contents_and_no(&self, file: &Path) -> (Arc<str>, usize) {
         let no = self.cached_paths[file];
         (self.files[no].contents.clone(), no)
     }

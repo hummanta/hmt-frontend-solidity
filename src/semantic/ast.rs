@@ -12,16 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod args;
-pub mod ast;
-pub mod codegen;
-pub mod diagnostics;
-pub mod emit;
-pub mod error;
-pub mod helpers;
-pub mod lexer;
-pub mod parser;
-pub mod resolver;
-pub mod semantic;
-pub mod token;
-pub mod visitor;
+use crate::ast as pt;
+
+pub struct SourceUnit {
+    pub parts: Vec<SourceUnitPart>,
+    pub contracts: Vec<ContractDefinition>,
+}
+
+pub struct SourceUnitPart {
+    pub annotations: Vec<pt::Annotation>,
+    pub part: pt::SourceUnitPart,
+}
+
+pub struct ContractPart {
+    pub annotations: Vec<pt::Annotation>,
+    pub part: pt::ContractPart,
+}
+
+pub struct ContractDefinition {
+    pub contract_no: usize,
+    pub loc: pt::Loc,
+    pub ty: pt::ContractTy,
+    pub annotations: Vec<pt::Annotation>,
+    pub name: Option<pt::Identifier>,
+    pub base: Vec<pt::Base>,
+    pub parts: Vec<ContractPart>,
+}

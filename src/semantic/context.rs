@@ -12,16 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod args;
-pub mod ast;
-pub mod codegen;
-pub mod diagnostics;
-pub mod emit;
-pub mod error;
-pub mod helpers;
-pub mod lexer;
-pub mod parser;
-pub mod resolver;
-pub mod semantic;
-pub mod token;
-pub mod visitor;
+use crate::diagnostics::Diagnostics;
+
+use super::file::File;
+
+/// Holds all the resolved symbols and types.
+pub struct Context {
+    pub files: Vec<File>,
+    pub contracts: Vec<()>,
+    pub diagnostics: Diagnostics,
+}
