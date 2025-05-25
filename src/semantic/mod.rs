@@ -17,18 +17,22 @@ pub mod ast;
 pub mod collector;
 pub mod context;
 pub mod file;
+pub mod pragma;
+pub mod visitor;
 
-use context::Context;
-
+use self::context::Context;
 use crate::resolver::{FileResolver, ResolvedFile};
+use anyhow::Result;
 
 /// Analyzes the semantic of the given source code.
-pub fn analyze(file: &ResolvedFile, resolver: &mut FileResolver, ctx: &mut Context) {
-    analyzer::analyze(file, resolver, ctx);
+pub fn analyze(file: &ResolvedFile, resolver: &mut FileResolver, ctx: &mut Context) -> Result<()> {
+    analyzer::analyze(file, resolver, ctx)?;
 
     if !ctx.diagnostics.any_errors() {
         // Checks for unused variables
         // Checks for unused events
         // Checks for unused errors
     }
+
+    Ok(())
 }

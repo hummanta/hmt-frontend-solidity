@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::fmt::{self, Write as _};
+
 use crate::ast as pt;
 
 pub struct SourceUnit {
@@ -37,4 +39,41 @@ pub struct ContractDefinition {
     pub name: Option<pt::Identifier>,
     pub base: Vec<pt::Base>,
     pub parts: Vec<ContractPart>,
+}
+
+#[derive(Debug)]
+pub enum Pragma {
+    Identifier { loc: pt::Loc, name: pt::Identifier, value: pt::Identifier },
+    StringLiteral { loc: pt::Loc, name: pt::Identifier, value: pt::StringLiteral },
+    SolidityVersion { loc: pt::Loc, versions: Vec<VersionReq> },
+}
+
+#[derive(Debug)]
+pub enum VersionReq {
+    Plain { loc: pt::Loc, version: Version },
+    Operator { loc: pt::Loc, op: pt::VersionOp, version: Version },
+    Range { loc: pt::Loc, from: Version, to: Version },
+    Or { loc: pt::Loc, left: Box<VersionReq>, right: Box<VersionReq> },
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Version {
+    pub major: u32,
+    pub minor: Option<u32>,
+    pub patch: Option<u32>,
+}
+
+impl fmt::Display for Version {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.major.fmt(f)?;
+        if let Some(minor) = self.minor {
+            f.write_char('.')?;
+            minor.fmt(f)?
+        }
+        if let Some(patch) = self.patch {
+            f.write_char('.')?;
+            patch.fmt(f)?;
+        }
+        Ok(())
+    }
 }

@@ -12,13 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::diagnostics::Diagnostics;
+use crate::{
+    ast as pt,
+    diagnostics::{Diagnostic, Diagnostics},
+};
 
-use super::file::File;
+use super::{ast::Pragma, file::File};
 
 /// Holds all the resolved symbols and types.
 pub struct Context {
+    pub pragmas: Vec<Pragma>,
     pub files: Vec<File>,
     pub contracts: Vec<()>,
     pub diagnostics: Diagnostics,
+}
+
+impl Context {
+    /// If an item does not allow annotations, then generate diagnostic errors.
+    pub(crate) fn reject(&mut self, annotations: &[pt::Annotation], item: &str) {
+        for note in annotations {
+            let msg = format!("annotations not allowed on {item}");
+            self.diagnostics.push(Diagnostic::error(note.loc, msg))
+        }
+    }
 }

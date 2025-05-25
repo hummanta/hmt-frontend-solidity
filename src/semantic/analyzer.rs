@@ -12,7 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::{collector::AnnotationCollector, context::Context, file::File};
+use super::{
+    collector::AnnotationCollector, context::Context, file::File, pragma::PragmaResolver,
+    visitor::SemanticVisitable,
+};
 
 use crate::{
     parser::parse,
@@ -20,8 +23,14 @@ use crate::{
     visitor::Visitable,
 };
 
+use anyhow::{bail, Result};
+
 /// Parse and resolve a file and its imports in a recursive manner.
-pub(crate) fn analyze(file: &ResolvedFile, resolver: &mut FileResolver, ctx: &mut Context) {
+pub(crate) fn analyze(
+    file: &ResolvedFile,
+    resolver: &mut FileResolver,
+    ctx: &mut Context,
+) -> Result<()> {
     let no = ctx.files.len();
 
     let (source, cache_no) = resolver.get_file_contents_and_no(&file.full_path);
@@ -31,15 +40,18 @@ pub(crate) fn analyze(file: &ResolvedFile, resolver: &mut FileResolver, ctx: &mu
         Ok(ast) => ast,
         Err(mut errors) => {
             ctx.diagnostics.append(&mut errors);
-            return;
+            bail!("Parsing failed");
         }
     };
 
     // Walk through the parse tree and collect all the
     // anonotations for each items, also inside contracts.
     let mut collector = AnnotationCollector::new(ctx);
-    if ast.visit(&mut collector).is_err() {
-        return;
-    }
-    let _tree = collector.collect();
+    ast.visit(&mut collector)?;
+    let mut tree = collector.collect();
+
+    // Resolve pragmas
+    tree.visit(&mut PragmaResolver::new(ctx))?;
+
+    Ok(())
 }
