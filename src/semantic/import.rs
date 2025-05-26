@@ -303,7 +303,7 @@ fn osstring_from_vec(
     ctx: &mut Context,
 ) -> Result<OsString, ImportResolverError> {
     match str::from_utf8(&bs) {
-        Ok(s) => Some(OsString::from(s)),
+        Ok(s) => Ok(OsString::from(s)),
         Err(_) => {
             ctx.diagnostics.push(Diagnostic::error(*loc, "string is not a valid filename"));
             Err(ImportResolverError::InvalidFilenameEncoding)
