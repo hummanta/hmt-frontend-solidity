@@ -15,7 +15,8 @@
 use thiserror::Error;
 
 use super::{
-    analyzer, ast,
+    analyzer,
+    ast::{self, Symbol},
     context::Context,
     expression::strings::unescape,
     visitor::{SemanticVisitable, SemanticVisitor},
@@ -49,6 +50,27 @@ impl<'a> ImportResolver<'a> {
         no: usize,
     ) -> Self {
         Self { ctx, resolver, parent, filename: None, import_file_no: 0, no }
+    }
+
+    /// Adds symbol to context if it doesn't already exist with the same definition
+    fn add_symbol(
+        &mut self,
+        function: bool,
+        contract_no: Option<usize>,
+        name: String,
+        symbol: Symbol,
+    ) {
+        let symbols = match function {
+            true => &self.ctx.function_symbols,
+            false => &self.ctx.variable_symbols,
+        };
+
+        if symbols.get(&(self.no, contract_no, name.to_owned())) != Some(&symbol) {
+            let filename = self.filename.as_ref().unwrap();
+            let new_symbol = pt::Identifier { name, loc: filename.loc };
+
+            self.ctx.add_symbol(self.no, contract_no, &new_symbol, symbol);
+        }
     }
 }
 
@@ -156,61 +178,30 @@ impl<'a> SemanticVisitor for ImportResolver<'a> {
         _: pt::Loc,
         _: &mut pt::ImportPath,
     ) -> Result<(), Self::Error> {
-        let filename = self.filename.as_ref().unwrap();
-
-        // find all the exports for the file
-        let exports = self
+        // Process variable symbols
+        let exports: Vec<_> = self
             .ctx
             .variable_symbols
             .iter()
-            .filter_map(|((no, contract_no, id), symbol)| {
-                if *no == self.import_file_no {
-                    Some((id.clone(), *contract_no, symbol.clone()))
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<(String, Option<usize>, ast::Symbol)>>();
+            .filter(|((no, _, _), _)| *no == self.import_file_no)
+            .map(|((_, contract_no, name), symbol)| (*contract_no, name.clone(), symbol.clone()))
+            .collect();
 
-        for (name, contract_no, symbol) in exports {
-            let new_symbol = pt::Identifier { name: name.clone(), loc: filename.loc };
-
-            // Only add symbol if it does not already exist with same definition
-            if let Some(existing) =
-                self.ctx.variable_symbols.get(&(self.no, contract_no, name.clone()))
-            {
-                if existing == &symbol {
-                    continue;
-                }
-            }
-
-            self.ctx.add_symbol(self.no, contract_no, &new_symbol, symbol);
+        for (contract_no, name, symbol) in exports {
+            self.add_symbol(false, contract_no, name, symbol);
         }
 
-        let exports = self
+        // Process function symbols
+        let exports: Vec<_> = self
             .ctx
             .function_symbols
             .iter()
-            .filter_map(|((no, contract_no, id), symbol)| {
-                if *no == self.import_file_no && contract_no.is_none() {
-                    Some((id.clone(), symbol.clone()))
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<(String, ast::Symbol)>>();
+            .filter(|((no, contract_no, _), _)| *no == self.import_file_no && contract_no.is_none())
+            .map(|((_, _, name), symbol)| (name.clone(), symbol.clone()))
+            .collect();
 
         for (name, symbol) in exports {
-            let new_symbol = pt::Identifier { name: name.clone(), loc: filename.loc };
-
-            // Only add symbol if it does not already exist with same definition
-            if let Some(existing) = self.ctx.function_symbols.get(&(self.no, None, name.clone())) {
-                if existing == &symbol {
-                    continue;
-                }
-            }
-
-            self.ctx.add_symbol(self.no, None, &new_symbol, symbol);
+            self.add_symbol(true, None, name, symbol);
         }
 
         Ok(())
@@ -222,12 +213,7 @@ impl<'a> SemanticVisitor for ImportResolver<'a> {
         _: &mut pt::ImportPath,
         alias: &mut pt::Identifier,
     ) -> Result<(), Self::Error> {
-        self.ctx.add_symbol(
-            self.no,
-            None,
-            alias,
-            ast::Symbol::Import(alias.loc, self.import_file_no),
-        );
+        self.ctx.add_symbol(self.no, None, alias, Symbol::Import(alias.loc, self.import_file_no));
         Ok(())
     }
 
@@ -237,47 +223,33 @@ impl<'a> SemanticVisitor for ImportResolver<'a> {
         imports: &mut [(pt::Identifier, Option<pt::Identifier>)],
         _: &mut pt::ImportPath,
     ) -> Result<(), Self::Error> {
-        let filename = self.filename.as_ref().unwrap();
+        let mut symbols = Vec::new();
 
         for (from, rename_to) in imports {
-            if let Some(import) =
+            let id = rename_to.as_ref().unwrap_or(from);
+
+            // Try variable symbols first
+            if let Some(symbol) =
                 self.ctx.variable_symbols.get(&(self.import_file_no, None, from.name.to_owned()))
             {
-                let import = import.clone();
-                let symbol = rename_to.as_ref().unwrap_or(from);
-
-                // Only add symbol if it does not already exist with same definition
-                if let Some(existing) =
-                    self.ctx.variable_symbols.get(&(self.no, None, symbol.name.clone()))
-                {
-                    if existing == &import {
-                        continue;
-                    }
-                }
-
-                self.ctx.add_symbol(self.no, None, symbol, import);
-            } else if let Some(import) =
+                symbols.push((false, id.clone(), symbol.clone()));
+            }
+            // Then try function symbols
+            else if let Some(symbol) =
                 self.ctx.function_symbols.get(&(self.import_file_no, None, from.name.to_owned()))
             {
-                let import = import.clone();
-                let symbol = rename_to.as_ref().unwrap_or(from);
-
-                // Only add symbol if it does not already exist with same definition
-                if let Some(existing) =
-                    self.ctx.function_symbols.get(&(self.no, None, symbol.name.clone()))
-                {
-                    if existing == &import {
-                        continue;
-                    }
-                }
-
-                self.ctx.add_symbol(self.no, None, symbol, import);
+                symbols.push((true, id.clone(), symbol.clone()));
             } else {
+                let filename = self.filename.as_ref().unwrap();
                 self.ctx.diagnostics.push(Diagnostic::error(
                     from.loc,
                     format!("import '{}' does not export '{}'", filename.string, from.name),
                 ));
             }
+        }
+
+        for (function, id, symbol) in symbols {
+            self.add_symbol(function, None, id.name, symbol);
         }
 
         Ok(())

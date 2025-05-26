@@ -40,7 +40,7 @@ impl Context {
     /// Add symbol to symbol table.
     /// either returns true for success, or adds an appropriate error
     pub fn add_symbol(
-        &self,
+        &mut self,
         _no: usize,
         _contract_no: Option<usize>,
         _id: &pt::Identifier,
