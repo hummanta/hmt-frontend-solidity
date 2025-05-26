@@ -16,7 +16,9 @@ pub mod analyzer;
 pub mod ast;
 pub mod collector;
 pub mod context;
+pub(crate) mod expression;
 pub mod file;
+pub mod import;
 pub mod pragma;
 pub mod visitor;
 

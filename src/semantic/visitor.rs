@@ -31,6 +31,36 @@ where
     fn visit_pragma(&mut self, _pragma: &pt::PragmaDirective) -> Result<(), Self::Error> {
         Ok(())
     }
+
+    fn visit_import(&mut self, import: &mut pt::Import) -> Result<(), Self::Error> {
+        import.visit(self)
+    }
+
+    fn visit_import_plain(
+        &mut self,
+        _loc: pt::Loc,
+        _import: &mut pt::ImportPath,
+    ) -> Result<(), Self::Error> {
+        Ok(())
+    }
+
+    fn visit_import_global(
+        &mut self,
+        _loc: pt::Loc,
+        _global: &mut pt::ImportPath,
+        _alias: &mut pt::Identifier,
+    ) -> Result<(), Self::Error> {
+        Ok(())
+    }
+
+    fn visit_import_renames(
+        &mut self,
+        _loc: pt::Loc,
+        _imports: &mut [(pt::Identifier, Option<pt::Identifier>)],
+        _from: &mut pt::ImportPath,
+    ) -> Result<(), Self::Error> {
+        Ok(())
+    }
 }
 
 /// All [`semantic`] types, such as [Statement], should implement the [Visitable] trait
@@ -105,9 +135,25 @@ impl SemanticVisitable for SourceUnitPart {
     where
         V: SemanticVisitor,
     {
-        match &self.part {
+        match &mut self.part {
             pt::SourceUnitPart::PragmaDirective(pragma) => v.visit_pragma(pragma),
+            pt::SourceUnitPart::ImportDirective(import) => v.visit_import(import),
             _ => Ok(()),
+        }
+    }
+}
+
+impl SemanticVisitable for pt::Import {
+    fn visit<V>(&mut self, v: &mut V) -> Result<(), V::Error>
+    where
+        V: SemanticVisitor,
+    {
+        match self {
+            Self::Plain(import, loc) => v.visit_import_plain(*loc, import),
+            Self::GlobalSymbol(global, import_as, loc) => {
+                v.visit_import_global(*loc, global, import_as)
+            }
+            Self::Rename(from, imports, loc) => v.visit_import_renames(*loc, imports, from),
         }
     }
 }

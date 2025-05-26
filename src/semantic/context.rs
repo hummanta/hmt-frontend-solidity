@@ -12,12 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::collections::HashMap;
+
 use crate::{
     ast as pt,
     diagnostics::{Diagnostic, Diagnostics},
 };
 
-use super::{ast::Pragma, file::File};
+use super::{
+    ast::{Pragma, Symbol},
+    file::File,
+};
 
 /// Holds all the resolved symbols and types.
 pub struct Context {
@@ -25,9 +30,25 @@ pub struct Context {
     pub files: Vec<File>,
     pub contracts: Vec<()>,
     pub diagnostics: Diagnostics,
+    /// There is a separate namespace for functions and non-functions
+    pub function_symbols: HashMap<(usize, Option<usize>, String), Symbol>,
+    /// Symbol key is file number, contract, identifier
+    pub variable_symbols: HashMap<(usize, Option<usize>, String), Symbol>,
 }
 
 impl Context {
+    /// Add symbol to symbol table.
+    /// either returns true for success, or adds an appropriate error
+    pub fn add_symbol(
+        &self,
+        _no: usize,
+        _contract_no: Option<usize>,
+        _id: &pt::Identifier,
+        _symbol: Symbol,
+    ) -> bool {
+        todo!()
+    }
+
     /// If an item does not allow annotations, then generate diagnostic errors.
     pub(crate) fn reject(&mut self, annotations: &[pt::Annotation], item: &str) {
         for note in annotations {

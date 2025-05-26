@@ -13,8 +13,8 @@
 // limitations under the License.
 
 use super::{
-    collector::AnnotationCollector, context::Context, file::File, pragma::PragmaResolver,
-    visitor::SemanticVisitable,
+    collector::AnnotationCollector, context::Context, file::File, import::ImportResolver,
+    pragma::PragmaResolver, visitor::SemanticVisitable,
 };
 
 use crate::{
@@ -50,8 +50,9 @@ pub(crate) fn analyze(
     ast.visit(&mut collector)?;
     let mut tree = collector.collect();
 
-    // Resolve pragmas
+    // Resolve pragmas and imports
     tree.visit(&mut PragmaResolver::new(ctx))?;
+    tree.visit(&mut ImportResolver::new(ctx, resolver, Some(file), no))?;
 
     Ok(())
 }

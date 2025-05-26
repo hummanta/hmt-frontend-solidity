@@ -77,3 +77,16 @@ impl fmt::Display for Version {
         Ok(())
     }
 }
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Symbol {
+    Enum(pt::Loc, usize),
+    Function(Vec<(pt::Loc, usize)>),
+    Variable(pt::Loc, Option<usize>, usize),
+    // Struct(pt::Loc, StructType),
+    Event(Vec<(pt::Loc, usize)>),
+    Error(pt::Loc, usize),
+    Contract(pt::Loc, usize),
+    Import(pt::Loc, usize),
+    UserType(pt::Loc, usize),
+}
