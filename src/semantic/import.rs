@@ -55,7 +55,7 @@ impl<'a> ImportResolver<'a> {
 
     /// Process the filename from the import path and store it in self.filename
     /// Returns true if processing was successful, false if there were errors
-    fn process_filename(&mut self, import: &pt::Import) -> bool {
+    fn process_filename(&mut self, import: &pt::Import) -> Result<(), ImportResolverError> {
         let path = match import {
             pt::Import::Plain(f, _) |
             pt::Import::GlobalSymbol(f, _, _) |
@@ -68,13 +68,13 @@ impl<'a> ImportResolver<'a> {
                 self.ctx
                     .diagnostics
                     .push(Diagnostic::error(path.loc, "experimental import paths not supported"));
-                return false;
+                return Err(ImportResolverError::InvalidImportPath);
             }
         };
 
         if filename.string.is_empty() {
             self.ctx.diagnostics.push(Diagnostic::error(filename.loc, "import path empty"));
-            return false;
+            return Err(ImportResolverError::EmptyImportPath);
         }
 
         let (valid, bs) = unescape(
@@ -85,19 +85,20 @@ impl<'a> ImportResolver<'a> {
         );
 
         if !valid {
-            return false;
+            return Err(ImportResolverError::InvalidFilenameEncoding);
         }
 
-        self.os_filename = osstring_from_vec(&filename.loc, bs, self.ctx);
+        self.os_filename.replace(osstring_from_vec(&filename.loc, bs, self.ctx)?);
         self.filename.replace(filename.clone());
-        self.os_filename.is_some()
+
+        Ok(())
     }
 
     /// Process the import file number resolution and store it in self.import_file_no
     /// Returns true if processing was successful, false if there were errors
-    fn process_import_file_no(&mut self) -> bool {
-        let filename = self.filename.as_ref().unwrap();
-        let os_filename = self.os_filename.as_ref().unwrap();
+    fn process_import_file_no(&mut self) -> Result<(), ImportResolverError> {
+        let filename = self.filename.as_ref().ok_or(ImportResolverError::MissingFilename)?;
+        let os_filename = self.os_filename.as_ref().ok_or(ImportResolverError::MissingFilename)?;
 
         if let Some(builtin_file_no) = self
             .ctx
@@ -106,29 +107,34 @@ impl<'a> ImportResolver<'a> {
             .position(|file| file.cache_no.is_none() && file.path == *os_filename)
         {
             self.import_file_no = builtin_file_no;
-            return true;
+            return Ok(());
         }
 
         match self.resolver.resolve(self.parent, os_filename) {
             Err(message) => {
-                self.ctx.diagnostics.push(Diagnostic::error(filename.loc, message));
-                false
+                self.ctx.diagnostics.push(Diagnostic::error(filename.loc, message.clone()));
+                Err(ImportResolverError::FileResolutionFailed(message))
             }
             Ok(file) => {
                 if !self.ctx.files.iter().any(|f| f.path == file.full_path) {
                     let _ = analyzer::analyze(&file, self.resolver, self.ctx);
                     if self.ctx.diagnostics.any_errors() {
-                        return false;
+                        return Err(ImportResolverError::FileResolutionFailed(
+                            "analysis failed".to_string(),
+                        ));
                     }
                 }
 
-                self.import_file_no = self
-                    .ctx
-                    .files
-                    .iter()
-                    .position(|f| f.path == file.full_path)
-                    .expect("import should be loaded by now");
-                true
+                self.import_file_no =
+                    self.ctx.files.iter().position(|f| f.path == file.full_path).ok_or_else(
+                        || {
+                            ImportResolverError::FileResolutionFailed(
+                                "import should be loaded by now".to_string(),
+                            )
+                        },
+                    )?;
+
+                Ok(())
             }
         }
     }
@@ -140,24 +146,38 @@ impl<'a> ImportResolver<'a> {
         contract_no: Option<usize>,
         name: String,
         symbol: Symbol,
-    ) {
+    ) -> Result<(), ImportResolverError> {
+        let filename = self.filename.as_ref().ok_or(ImportResolverError::MissingFilename)?;
         let symbols = match function {
             true => &self.ctx.function_symbols,
             false => &self.ctx.variable_symbols,
         };
 
         if symbols.get(&(self.no, contract_no, name.to_owned())) != Some(&symbol) {
-            let filename = self.filename.as_ref().unwrap();
             let new_symbol = pt::Identifier { name, loc: filename.loc };
-
             self.ctx.add_symbol(self.no, contract_no, &new_symbol, symbol);
         }
+
+        Ok(())
     }
 }
 
 /// Placeholder error type for import resolver (currently unused)
 #[derive(Debug, Error)]
-pub enum ImportResolverError {}
+pub enum ImportResolverError {
+    #[error("invalid import path")]
+    InvalidImportPath,
+    #[error("empty import path")]
+    EmptyImportPath,
+    #[error("invalid filename encoding")]
+    InvalidFilenameEncoding,
+    #[error("import file resolution failed: {0}")]
+    FileResolutionFailed(String),
+    #[error("symbol not found: {0}")]
+    SymbolNotFound(String),
+    #[error("missing filename for import")]
+    MissingFilename,
+}
 
 impl<'a> SemanticVisitor for ImportResolver<'a> {
     type Error = ImportResolverError;
@@ -176,17 +196,9 @@ impl<'a> SemanticVisitor for ImportResolver<'a> {
     }
 
     fn visit_import(&mut self, import: &mut pt::Import) -> Result<(), Self::Error> {
-        if !self.process_filename(import) {
-            return Ok(());
-        }
-
-        if !self.process_import_file_no() {
-            return Ok(());
-        }
-
-        import.visit(self)?;
-
-        Ok(())
+        self.process_filename(import)?;
+        self.process_import_file_no()?;
+        import.visit(self)
     }
 
     fn visit_import_plain(
@@ -204,7 +216,7 @@ impl<'a> SemanticVisitor for ImportResolver<'a> {
             .collect();
 
         for (contract_no, name, symbol) in exports {
-            self.add_symbol(false, contract_no, name, symbol);
+            self.add_symbol(false, contract_no, name, symbol)?;
         }
 
         // Process function symbols
@@ -217,7 +229,7 @@ impl<'a> SemanticVisitor for ImportResolver<'a> {
             .collect();
 
         for (name, symbol) in exports {
-            self.add_symbol(true, None, name, symbol);
+            self.add_symbol(true, None, name, symbol)?;
         }
 
         Ok(())
@@ -256,16 +268,18 @@ impl<'a> SemanticVisitor for ImportResolver<'a> {
             {
                 symbols.push((true, id.clone(), symbol.clone()));
             } else {
-                let filename = self.filename.as_ref().unwrap();
+                let filename =
+                    self.filename.as_ref().ok_or(ImportResolverError::MissingFilename)?;
                 self.ctx.diagnostics.push(Diagnostic::error(
                     from.loc,
                     format!("import '{}' does not export '{}'", filename.string, from.name),
                 ));
+                return Err(ImportResolverError::SymbolNotFound(from.name.clone()));
             }
         }
 
         for (function, id, symbol) in symbols {
-            self.add_symbol(function, None, id.name, symbol);
+            self.add_symbol(function, None, id.name, symbol)?;
         }
 
         Ok(())
@@ -273,19 +287,26 @@ impl<'a> SemanticVisitor for ImportResolver<'a> {
 }
 
 #[cfg(unix)]
-fn osstring_from_vec(_: &pt::Loc, bs: Vec<u8>, _: &mut Context) -> Option<OsString> {
+fn osstring_from_vec(
+    _: &pt::Loc,
+    bs: Vec<u8>,
+    _: &mut Context,
+) -> Result<OsString, ImportResolverError> {
     use std::{ffi::OsString, os::unix::ffi::OsStringExt};
-
-    Some(OsString::from_vec(bs))
+    Ok(OsString::from_vec(bs))
 }
 
 #[cfg(not(unix))]
-fn osstring_from_vec(loc: &pt::Loc, bs: Vec<u8>, ctx: &mut Context) -> Option<OsString> {
+fn osstring_from_vec(
+    loc: &pt::Loc,
+    bs: Vec<u8>,
+    ctx: &mut Context,
+) -> Result<OsString, ImportResolverError> {
     match str::from_utf8(&bs) {
         Ok(s) => Some(OsString::from(s)),
         Err(_) => {
             ctx.diagnostics.push(Diagnostic::error(*loc, "string is not a valid filename"));
-            None
+            Err(ImportResolverError::InvalidFilenameEncoding)
         }
     }
 }
