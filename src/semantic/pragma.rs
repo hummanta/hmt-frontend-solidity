@@ -59,7 +59,7 @@ impl<'a> PragmaResolver<'a> {
     fn parse_version_comparator(
         &mut self,
         version: &pt::VersionComparator,
-    ) -> Result<ast::VersionReq, ()> {
+    ) -> Result<ast::VersionReq, PragmaResolverError> {
         match version {
             pt::VersionComparator::Plain { loc, version } => {
                 Ok(ast::VersionReq::Plain { loc: *loc, version: self.parse_version(loc, version)? })
@@ -83,8 +83,12 @@ impl<'a> PragmaResolver<'a> {
     }
 
     /// Parses a version string into an `ast::Version`
-    fn parse_version(&mut self, loc: &pt::Loc, version: &[String]) -> Result<ast::Version, ()> {
-        let mut res = Vec::new();
+    fn parse_version(
+        &mut self,
+        loc: &pt::Loc,
+        version: &[String],
+    ) -> Result<ast::Version, PragmaResolverError> {
+        let mut res = Vec::with_capacity(3);
 
         for v in version {
             if let Ok(v) = v.parse() {
@@ -93,7 +97,7 @@ impl<'a> PragmaResolver<'a> {
                 self.ctx
                     .diagnostics
                     .push(Diagnostic::error(*loc, format!("'{v}' is not a valid number")));
-                return Err(());
+                return Err(PragmaResolverError::InvalidVersionComponent);
             }
         }
 
@@ -102,16 +106,21 @@ impl<'a> PragmaResolver<'a> {
                 *loc,
                 "no more than three numbers allowed - major.minor.patch",
             ));
-            return Err(());
+            return Err(PragmaResolverError::TooManyVersionComponents);
         }
 
         Ok(ast::Version { major: res[0], minor: res.get(1).cloned(), patch: res.get(2).cloned() })
     }
 }
 
-/// Placeholder error type for pragma resolver (currently unused)
+/// Internal error type for pragma resolution logic
 #[derive(Debug, Error)]
-pub enum PragmaResolverError {}
+pub enum PragmaResolverError {
+    #[error("Invalid version component")]
+    InvalidVersionComponent,
+    #[error("Too many version components")]
+    TooManyVersionComponents,
+}
 
 impl<'a> SemanticVisitor for PragmaResolver<'a> {
     type Error = PragmaResolverError;

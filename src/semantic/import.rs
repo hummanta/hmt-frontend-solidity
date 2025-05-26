@@ -162,7 +162,7 @@ impl<'a> ImportResolver<'a> {
     }
 }
 
-/// Placeholder error type for import resolver (currently unused)
+/// Error type for import resolver
 #[derive(Debug, Error)]
 pub enum ImportResolverError {
     #[error("invalid import path")]
