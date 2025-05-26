@@ -37,6 +37,7 @@ pub struct ImportResolver<'a> {
     resolver: &'a mut FileResolver,
     parent: Option<&'a ResolvedFile>,
     filename: Option<pt::StringLiteral>,
+    os_filename: Option<OsString>,
     import_file_no: usize,
     no: usize,
 }
@@ -49,7 +50,87 @@ impl<'a> ImportResolver<'a> {
         parent: Option<&'a ResolvedFile>,
         no: usize,
     ) -> Self {
-        Self { ctx, resolver, parent, filename: None, import_file_no: 0, no }
+        Self { ctx, resolver, parent, filename: None, os_filename: None, import_file_no: 0, no }
+    }
+
+    /// Process the filename from the import path and store it in self.filename
+    /// Returns true if processing was successful, false if there were errors
+    fn process_filename(&mut self, import: &pt::Import) -> bool {
+        let path = match import {
+            pt::Import::Plain(f, _) |
+            pt::Import::GlobalSymbol(f, _, _) |
+            pt::Import::Rename(f, _, _) => f,
+        };
+
+        let filename = match path {
+            pt::ImportPath::Filename(f) => f,
+            pt::ImportPath::Path(path) => {
+                self.ctx
+                    .diagnostics
+                    .push(Diagnostic::error(path.loc, "experimental import paths not supported"));
+                return false;
+            }
+        };
+
+        if filename.string.is_empty() {
+            self.ctx.diagnostics.push(Diagnostic::error(filename.loc, "import path empty"));
+            return false;
+        }
+
+        let (valid, bs) = unescape(
+            &filename.string,
+            filename.loc.start(),
+            filename.loc.no(),
+            &mut self.ctx.diagnostics,
+        );
+
+        if !valid {
+            return false;
+        }
+
+        self.os_filename = osstring_from_vec(&filename.loc, bs, self.ctx);
+        self.filename.replace(filename.clone());
+        self.os_filename.is_some()
+    }
+
+    /// Process the import file number resolution and store it in self.import_file_no
+    /// Returns true if processing was successful, false if there were errors
+    fn process_import_file_no(&mut self) -> bool {
+        let filename = self.filename.as_ref().unwrap();
+        let os_filename = self.os_filename.as_ref().unwrap();
+
+        if let Some(builtin_file_no) = self
+            .ctx
+            .files
+            .iter()
+            .position(|file| file.cache_no.is_none() && file.path == *os_filename)
+        {
+            self.import_file_no = builtin_file_no;
+            return true;
+        }
+
+        match self.resolver.resolve(self.parent, os_filename) {
+            Err(message) => {
+                self.ctx.diagnostics.push(Diagnostic::error(filename.loc, message));
+                false
+            }
+            Ok(file) => {
+                if !self.ctx.files.iter().any(|f| f.path == file.full_path) {
+                    let _ = analyzer::analyze(&file, self.resolver, self.ctx);
+                    if self.ctx.diagnostics.any_errors() {
+                        return false;
+                    }
+                }
+
+                self.import_file_no = self
+                    .ctx
+                    .files
+                    .iter()
+                    .position(|f| f.path == file.full_path)
+                    .expect("import should be loaded by now");
+                true
+            }
+        }
     }
 
     /// Adds symbol to context if it doesn't already exist with the same definition
@@ -95,78 +176,13 @@ impl<'a> SemanticVisitor for ImportResolver<'a> {
     }
 
     fn visit_import(&mut self, import: &mut pt::Import) -> Result<(), Self::Error> {
-        let path = match import {
-            pt::Import::Plain(f, _) |
-            pt::Import::GlobalSymbol(f, _, _) |
-            pt::Import::Rename(f, _, _) => f,
-        };
-
-        let filename = match path {
-            pt::ImportPath::Filename(f) => f,
-            pt::ImportPath::Path(path) => {
-                self.ctx
-                    .diagnostics
-                    .push(Diagnostic::error(path.loc, "experimental import paths not supported"));
-                return Ok(());
-            }
-        };
-
-        if filename.string.is_empty() {
-            self.ctx.diagnostics.push(Diagnostic::error(filename.loc, "import path empty"));
+        if !self.process_filename(import) {
             return Ok(());
         }
 
-        let (valid, bs) = unescape(
-            &filename.string,
-            filename.loc.start(),
-            filename.loc.no(),
-            &mut self.ctx.diagnostics,
-        );
-
-        if !valid {
+        if !self.process_import_file_no() {
             return Ok(());
         }
-
-        let os_filename = if let Some(res) = osstring_from_vec(&filename.loc, bs, self.ctx) {
-            res
-        } else {
-            return Ok(());
-        };
-
-        self.filename.replace(filename.clone());
-
-        self.import_file_no = if let Some(builtin_file_no) = self
-            .ctx
-            .files
-            .iter()
-            .position(|file| file.cache_no.is_none() && file.path == os_filename)
-        {
-            // import "solana"
-            builtin_file_no
-        } else {
-            match self.resolver.resolve(self.parent, &os_filename) {
-                Err(message) => {
-                    self.ctx.diagnostics.push(Diagnostic::error(filename.loc, message));
-                    return Ok(());
-                }
-                Ok(file) => {
-                    if !self.ctx.files.iter().any(|f| f.path == file.full_path) {
-                        let _ = analyzer::analyze(&file, self.resolver, self.ctx);
-
-                        // give up if we failed
-                        if self.ctx.diagnostics.any_errors() {
-                            return Ok(());
-                        }
-                    }
-
-                    self.ctx
-                        .files
-                        .iter()
-                        .position(|f| f.path == file.full_path)
-                        .expect("import should be loaded by now")
-                }
-            }
-        };
 
         import.visit(self)?;
 
