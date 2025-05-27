@@ -13,8 +13,8 @@
 // limitations under the License.
 
 use super::{
-    collector::AnnotationCollector, context::Context, file::File, import::ImportResolver,
-    pragma::PragmaResolver, visitor::SemanticVisitable,
+    collector::AnnotationCollector, context::Context, contract::ContractResolver, file::File,
+    import::ImportResolver, pragma::PragmaResolver, visitor::SemanticVisitable,
 };
 
 use crate::{
@@ -53,6 +53,9 @@ pub(crate) fn analyze(
     // Resolve pragmas and imports
     tree.visit(&mut PragmaResolver::new(ctx))?;
     tree.visit(&mut ImportResolver::new(ctx, resolver, Some(file), no))?;
+
+    // Resolve the base contracts list and check for cycles.
+    tree.visit(&mut ContractResolver::new(ctx, no))?;
 
     Ok(())
 }
