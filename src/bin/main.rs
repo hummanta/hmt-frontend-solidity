@@ -12,13 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::{fs, process};
+use std::{fs, path::PathBuf, process};
 
 use anyhow::{anyhow, Context, Result};
 use ariadne::{Report, Source};
-use clap::Parser as _;
+use clap::Parser;
 
-use hmt_frontend_solidity::{args::Args, codegen::Codegen, diagnostics::ReportToStringExt, parser};
+use hmt_frontend_solidity::{codegen::Codegen, diagnostics::ReportToStringExt, parser};
+
+#[derive(Debug, Parser)]
+pub struct Args {
+    /// Path to the input file
+    #[arg(long)]
+    pub input: PathBuf,
+
+    /// Path to the output file
+    #[arg(long)]
+    pub output: PathBuf,
+
+    /// Also print AST to console
+    #[arg(long)]
+    pub print_ast: bool,
+}
 
 fn main() {
     if let Err(e) = run() {
