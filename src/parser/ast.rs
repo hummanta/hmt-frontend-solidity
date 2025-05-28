@@ -1308,7 +1308,7 @@ impl Expression {
     /// # Examples
     ///
     /// ```
-    /// use hmt_frontend_solidity::ast::{Expression, Identifier, Loc};
+    /// use hmt_frontend_solidity::parser::ast::{Expression, Identifier, Loc};
     ///
     /// // `a++`
     /// let var = Expression::Variable(Identifier::new("a"));

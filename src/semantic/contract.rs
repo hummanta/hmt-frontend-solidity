@@ -14,7 +14,10 @@
 
 use thiserror::Error;
 
-use crate::diagnostics::{Diagnostic, Diagnostics};
+use crate::{
+    diagnostics::{Diagnostic, Diagnostics},
+    parser::visitor::Visitor,
+};
 
 use super::{
     ast::{Base, SourceUnit},
@@ -51,9 +54,7 @@ impl<'a> ContractResolver<'a> {
 pub enum ContractResolverError {}
 
 impl<'a> SemanticVisitor for ContractResolver<'a> {
-    type Error = ContractResolverError;
-
-    fn visit_source_unit(&mut self, source_unit: &mut SourceUnit) -> Result<(), Self::Error> {
+    fn visit_sema_source_unit(&mut self, source_unit: &mut SourceUnit) -> Result<(), Self::Error> {
         let mut diagnostics = Diagnostics::default();
 
         for contract in &source_unit.contracts {
@@ -138,4 +139,8 @@ impl<'a> SemanticVisitor for ContractResolver<'a> {
 
         Ok(())
     }
+}
+
+impl<'a> Visitor for ContractResolver<'a> {
+    type Error = ContractResolverError;
 }

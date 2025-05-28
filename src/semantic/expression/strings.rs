@@ -13,8 +13,8 @@
 // limitations under the License.
 
 use crate::{
-    ast as pt,
     diagnostics::{Diagnostic, Diagnostics},
+    parser::ast as pt,
 };
 
 /// Unescape a string literal

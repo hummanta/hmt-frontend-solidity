@@ -24,7 +24,7 @@ use itertools::Itertools;
 use lalrpop_util::ParseError;
 use strum::{AsRefStr, Display, EnumString};
 
-use crate::{ast::Loc, error::LexicalError, helpers::CodeLocation, token::Token};
+use crate::{error::LexicalError, helpers::CodeLocation, lexer::token::Token, parser::ast::Loc};
 
 /// The level of a diagnostic.
 #[derive(Clone, Debug, Hash, PartialOrd, Ord, PartialEq, Eq, EnumString, AsRefStr, Display)]

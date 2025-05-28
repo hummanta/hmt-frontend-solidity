@@ -18,9 +18,8 @@ use super::{
 };
 
 use crate::{
-    parser::parse,
+    parser::{parse, visitor::Visitable},
     resolver::{FileResolver, ResolvedFile},
-    visitor::Visitable,
 };
 
 use anyhow::{bail, Result};

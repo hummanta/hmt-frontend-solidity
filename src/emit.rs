@@ -21,7 +21,7 @@ use cranelift::{
 };
 use thiserror::Error;
 
-use crate::visitor::Visitor;
+use crate::parser::visitor::Visitor;
 
 pub struct EmitContext<'a> {
     pub module: &'a mut ObjectModule,

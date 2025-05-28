@@ -1,6 +1,6 @@
-use crate::ast::*;
+use crate::parser::ast::*;
 use crate::error::LexicalError;
-use crate::token::Token;
+use crate::lexer::token::Token;
 use crate::helpers::num::*;
 use crate::helpers::CodeLocation;
 use lalrpop_util::ErrorRecovery;

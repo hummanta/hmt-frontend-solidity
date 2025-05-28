@@ -14,7 +14,7 @@
 
 use thiserror::Error;
 
-use crate::ast::Loc;
+use crate::parser::ast::Loc;
 
 /// An error thrown by [Lexer].
 #[derive(Debug, Clone, PartialEq, Eq, Error)]

@@ -18,7 +18,7 @@ use std::{
     fmt::{self, Write as _},
 };
 
-use crate::ast as pt;
+use crate::parser::ast as pt;
 
 pub struct SourceUnit {
     pub parts: Vec<SourceUnitPart>,

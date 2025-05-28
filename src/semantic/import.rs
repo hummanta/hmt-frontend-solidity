@@ -25,8 +25,8 @@ use super::{
 use std::ffi::OsString;
 
 use crate::{
-    ast as pt,
     diagnostics::Diagnostic,
+    parser::{ast as pt, visitor::Visitor},
     resolver::{FileResolver, ResolvedFile},
 };
 
@@ -180,26 +180,28 @@ pub enum ImportResolverError {
 }
 
 impl<'a> SemanticVisitor for ImportResolver<'a> {
-    type Error = ImportResolverError;
-
     /// Visits a source unit and processes any import directives found,
     /// and rejects any annotations on import directives.
-    fn visit_source_unit(&mut self, source_unit: &mut ast::SourceUnit) -> Result<(), Self::Error> {
+    fn visit_sema_source_unit(
+        &mut self,
+        source_unit: &mut ast::SourceUnit,
+    ) -> Result<(), Self::Error> {
         for part in source_unit.parts.iter_mut() {
-            if matches!(part.part, pt::SourceUnitPart::ImportDirective(_)) {
+            if let pt::SourceUnitPart::ImportDirective(import) = &part.part {
                 self.ctx.reject(&part.annotations, "import");
+
+                self.process_filename(import)?;
+                self.process_import_file_no()?;
                 part.visit(self)?;
             }
         }
 
         Ok(())
     }
+}
 
-    fn visit_import(&mut self, import: &mut pt::Import) -> Result<(), Self::Error> {
-        self.process_filename(import)?;
-        self.process_import_file_no()?;
-        import.visit(self)
-    }
+impl<'a> Visitor for ImportResolver<'a> {
+    type Error = ImportResolverError;
 
     fn visit_import_plain(
         &mut self,

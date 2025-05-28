@@ -12,107 +12,57 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::ast as pt;
-
-use super::ast::{SourceUnit, SourceUnitPart};
+use crate::{
+    parser::visitor::{Visitable, Visitor},
+    semantic::ast::{ContractDefinition, ContractPart, SourceUnit, SourceUnitPart},
+};
 
 /// A trait that is invoked while traversing the Solidity Semantic Tree.
 /// Each method of the [Visitor] trait is a hook that can be potentially overridden.
-pub trait SemanticVisitor
+pub trait SemanticVisitor: Visitor
 where
     Self: Sized,
 {
-    type Error: std::error::Error;
+    fn visit_sema_source_unit(&mut self, source_unit: &mut SourceUnit) -> Result<(), Self::Error> {
+        source_unit.parts.visit(self)?;
+        source_unit.contracts.visit(self)?;
 
-    fn visit_source_unit(&mut self, _source_unit: &mut SourceUnit) -> Result<(), Self::Error> {
         Ok(())
     }
 
-    fn visit_pragma(&mut self, _pragma: &pt::PragmaDirective) -> Result<(), Self::Error> {
-        Ok(())
-    }
-
-    fn visit_import(&mut self, import: &mut pt::Import) -> Result<(), Self::Error> {
-        import.visit(self)
-    }
-
-    fn visit_import_plain(
+    fn visit_sema_source_unit_part(
         &mut self,
-        _loc: pt::Loc,
-        _import: &mut pt::ImportPath,
+        part: &mut SourceUnitPart,
     ) -> Result<(), Self::Error> {
+        part.annotations.visit(self)?;
+        part.part.visit(self)?;
+
         Ok(())
     }
 
-    fn visit_import_global(
+    fn visit_sema_contract(
         &mut self,
-        _loc: pt::Loc,
-        _global: &mut pt::ImportPath,
-        _alias: &mut pt::Identifier,
+        contract: &mut ContractDefinition,
     ) -> Result<(), Self::Error> {
+        contract.annotations.visit(self)?;
+        contract.base.visit(self)?;
+        contract.parts.visit(self)?;
+
         Ok(())
     }
 
-    fn visit_import_renames(
-        &mut self,
-        _loc: pt::Loc,
-        _imports: &mut [(pt::Identifier, Option<pt::Identifier>)],
-        _from: &mut pt::ImportPath,
-    ) -> Result<(), Self::Error> {
+    fn visit_sema_contract_part(&mut self, part: &mut ContractPart) -> Result<(), Self::Error> {
+        part.annotations.visit(self)?;
+        part.part.visit(self)?;
+
         Ok(())
     }
 }
 
-/// All [`semantic`] types, such as [Statement], should implement the [Visitable] trait
-/// that accepts a trait [Visitor] implementation, which has various callback handles for Solidity
-/// Parse Tree nodes.
-///
-/// We want to take a `&mut self` to be able to implement some advanced features in the future such
-/// as modifying the Parse Tree before formatting it.
 pub trait SemanticVisitable {
     fn visit<V>(&mut self, v: &mut V) -> Result<(), V::Error>
     where
         V: SemanticVisitor;
-}
-
-impl<T> SemanticVisitable for &mut T
-where
-    T: SemanticVisitable,
-{
-    fn visit<V>(&mut self, v: &mut V) -> Result<(), V::Error>
-    where
-        V: SemanticVisitor,
-    {
-        T::visit(self, v)
-    }
-}
-
-impl<T> SemanticVisitable for Option<T>
-where
-    T: SemanticVisitable,
-{
-    fn visit<V>(&mut self, v: &mut V) -> Result<(), V::Error>
-    where
-        V: SemanticVisitor,
-    {
-        if let Some(inner) = self.as_mut() {
-            inner.visit(v)
-        } else {
-            Ok(())
-        }
-    }
-}
-
-impl<T> SemanticVisitable for Box<T>
-where
-    T: SemanticVisitable,
-{
-    fn visit<V>(&mut self, v: &mut V) -> Result<(), V::Error>
-    where
-        V: SemanticVisitor,
-    {
-        T::visit(self, v)
-    }
 }
 
 impl<T> SemanticVisitable for Vec<T>
@@ -130,34 +80,6 @@ where
     }
 }
 
-impl SemanticVisitable for SourceUnitPart {
-    fn visit<V>(&mut self, v: &mut V) -> Result<(), V::Error>
-    where
-        V: SemanticVisitor,
-    {
-        match &mut self.part {
-            pt::SourceUnitPart::PragmaDirective(pragma) => v.visit_pragma(pragma),
-            pt::SourceUnitPart::ImportDirective(import) => v.visit_import(import),
-            _ => Ok(()),
-        }
-    }
-}
-
-impl SemanticVisitable for pt::Import {
-    fn visit<V>(&mut self, v: &mut V) -> Result<(), V::Error>
-    where
-        V: SemanticVisitor,
-    {
-        match self {
-            Self::Plain(import, loc) => v.visit_import_plain(*loc, import),
-            Self::GlobalSymbol(global, import_as, loc) => {
-                v.visit_import_global(*loc, global, import_as)
-            }
-            Self::Rename(from, imports, loc) => v.visit_import_renames(*loc, imports, from),
-        }
-    }
-}
-
 macro_rules! impl_visitable {
     ($type:ty, $func:ident) => {
         impl SemanticVisitable for $type {
@@ -171,4 +93,7 @@ macro_rules! impl_visitable {
     };
 }
 
-impl_visitable!(SourceUnit, visit_source_unit);
+impl_visitable!(SourceUnit, visit_sema_source_unit);
+impl_visitable!(SourceUnitPart, visit_sema_source_unit_part);
+impl_visitable!(ContractDefinition, visit_sema_contract);
+impl_visitable!(ContractPart, visit_sema_contract_part);

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::{ast::*, error::LexicalError};
+use crate::{error::LexicalError, parser::ast::*};
 use std::{borrow::Cow, rc::Rc, sync::Arc};
 
 /// Returns the optional code location.

@@ -27,9 +27,8 @@ use cranelift::{
 use target_lexicon::Triple;
 
 use crate::{
-    ast::SourceUnit,
     emit::{CraneliftEmitter, EmitContext},
-    visitor::Visitable,
+    parser::{ast::SourceUnit, visitor::Visitable},
 };
 
 pub struct Codegen {

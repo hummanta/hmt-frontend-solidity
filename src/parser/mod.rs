@@ -12,11 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+pub mod ast;
+pub mod visitor;
+
 use std::iter::once;
 
 use lalrpop_util::lalrpop_mod;
 
-use crate::{ast::SourceUnit, diagnostics::Diagnostic, lexer::Lexer};
+use crate::{diagnostics::Diagnostic, lexer::Lexer, parser::ast::SourceUnit};
 
 lalrpop_mod!(
     #[allow(clippy::ptr_arg)]

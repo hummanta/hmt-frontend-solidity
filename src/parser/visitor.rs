@@ -14,7 +14,7 @@
 
 //! Visitor helpers to traverse the solang Solidity Parse Tree.
 
-use crate::{ast::*, helpers::CodeLocationExt};
+use crate::{helpers::CodeLocationExt, parser::ast::*};
 
 /// A trait that is invoked while traversing the Solidity Parse Tree.
 /// Each method of the [Visitor] trait is a hook that can be potentially overridden.
@@ -485,7 +485,7 @@ impl Visitable for SourceUnitPart {
             Self::TypeDefinition(def) => v.visit_type_definition(def),
             Self::StraySemicolon(_) => v.visit_stray_semicolon(),
             Self::Using(using) => v.visit_using(using),
-            Self::Annotation(annotation) => v.visit_annotation(annotation),
+            Self::Annotation(annotation) => annotation.visit(v),
         }
     }
 }
@@ -520,7 +520,7 @@ impl Visitable for ContractPart {
             Self::TypeDefinition(def) => v.visit_type_definition(def),
             Self::StraySemicolon(_) => v.visit_stray_semicolon(),
             Self::Using(using) => v.visit_using(using),
-            Self::Annotation(annotation) => v.visit_annotation(annotation),
+            Self::Annotation(annotation) => annotation.visit(v),
         }
     }
 }
@@ -646,6 +646,7 @@ macro_rules! impl_visitable {
 }
 
 impl_visitable!(SourceUnit, visit_source_unit);
+impl_visitable!(Annotation, visit_annotation);
 impl_visitable!(FunctionAttribute, visit_function_attribute);
 impl_visitable!(VariableAttribute, visit_var_attribute);
 impl_visitable!(Parameter, visit_parameter);

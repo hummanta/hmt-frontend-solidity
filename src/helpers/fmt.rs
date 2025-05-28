@@ -4,7 +4,7 @@
 //!
 //! [ref]: https://docs.soliditylang.org/en/latest/style-guide.html
 
-use crate::ast::{self, StorageType};
+use crate::parser::ast::{self, StorageType};
 use std::{
     borrow::Cow,
     fmt::{Display, Formatter, Result, Write},
@@ -1322,7 +1322,7 @@ fn rm_underscores(s: &str) -> Cow<'_, str> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ast::{Annotation, Loc};
+    use crate::parser::ast::{Annotation, Loc};
 
     macro_rules! struct_tests {
         ($(ast::$t:ident { $( $f:ident: $e:expr ),* $(,)? } => $expected:expr),* $(,)?) => {

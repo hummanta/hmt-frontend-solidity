@@ -13,7 +13,6 @@
 // limitations under the License.
 
 pub mod args;
-pub mod ast;
 pub mod codegen;
 pub mod diagnostics;
 pub mod emit;
@@ -23,5 +22,3 @@ pub mod lexer;
 pub mod parser;
 pub mod resolver;
 pub mod semantic;
-pub mod token;
-pub mod visitor;

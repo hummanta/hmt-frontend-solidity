@@ -17,9 +17,11 @@ use std::mem;
 use thiserror::Error;
 
 use crate::{
-    ast as pt,
     diagnostics::Diagnostic,
-    visitor::{Visitable, Visitor},
+    parser::{
+        ast as pt,
+        visitor::{Visitable, Visitor},
+    },
 };
 
 use super::{

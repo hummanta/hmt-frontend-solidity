@@ -12,9 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+pub mod token;
+
+use self::token::Token;
 use logos::{Logos, SpannedIter};
 
-use crate::{error::LexicalError, token::Token};
+use crate::error::LexicalError;
 
 pub type Spanned<Tok, Loc, Error> = Result<(Loc, Tok, Loc), Error>;
 
@@ -42,7 +45,7 @@ impl<'input> Iterator for Lexer<'input> {
 #[cfg(test)]
 mod test {
 
-    use crate::{lexer::Lexer, token::Token};
+    use crate::lexer::{token::Token, Lexer};
 
     #[test]
     fn test_lex_pragma() {

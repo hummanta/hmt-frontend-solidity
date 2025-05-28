@@ -17,8 +17,8 @@ use std::collections::HashMap;
 use anyhow::Result;
 
 use crate::{
-    ast as pt,
     diagnostics::{Diagnostic, Diagnostics, ErrorType, Level},
+    parser::ast as pt,
 };
 
 use super::{

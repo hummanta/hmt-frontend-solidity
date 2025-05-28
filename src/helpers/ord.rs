@@ -5,7 +5,7 @@
 //!
 //! [ref]: https://docs.soliditylang.org/en/latest/style-guide.html
 
-use crate::ast;
+use crate::parser::ast;
 use std::cmp::Ordering;
 
 macro_rules! impl_with_cast {

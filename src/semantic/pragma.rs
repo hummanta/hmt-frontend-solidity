@@ -20,7 +20,10 @@ use super::{
 };
 
 use super::ast;
-use crate::{ast as pt, diagnostics::Diagnostic};
+use crate::{
+    diagnostics::Diagnostic,
+    parser::{ast as pt, visitor::Visitor},
+};
 
 /// Resolve pragma from the parse tree
 pub struct PragmaResolver<'a> {
@@ -123,11 +126,12 @@ pub enum PragmaResolverError {
 }
 
 impl<'a> SemanticVisitor for PragmaResolver<'a> {
-    type Error = PragmaResolverError;
-
     /// Visits a source unit and processes any pragma directives found,
     /// and rejects any annotations on pragma directives.
-    fn visit_source_unit(&mut self, source_unit: &mut ast::SourceUnit) -> Result<(), Self::Error> {
+    fn visit_sema_source_unit(
+        &mut self,
+        source_unit: &mut ast::SourceUnit,
+    ) -> Result<(), Self::Error> {
         for part in source_unit.parts.iter_mut() {
             if matches!(part.part, pt::SourceUnitPart::PragmaDirective(_)) {
                 self.ctx.reject(&part.annotations, "pragma");
@@ -137,6 +141,10 @@ impl<'a> SemanticVisitor for PragmaResolver<'a> {
 
         Ok(())
     }
+}
+
+impl<'a> Visitor for PragmaResolver<'a> {
+    type Error = PragmaResolverError;
 
     /// Visits a pragma directive and processes it according to its type:
     /// - For identifier pragmas: Validates known pragma names/values
