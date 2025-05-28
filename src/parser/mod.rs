@@ -17,16 +17,14 @@ pub mod visitor;
 
 use std::iter::once;
 
-use lalrpop_util::lalrpop_mod;
-
 use crate::{diagnostics::Diagnostic, lexer::Lexer, parser::ast::SourceUnit};
 
-lalrpop_mod!(
-    #[allow(clippy::ptr_arg)]
-    #[allow(clippy::type_complexity)]
-    #[allow(clippy::large_enum_variant)]
-    grammar
-);
+#[allow(clippy::ptr_arg)]
+#[allow(clippy::type_complexity)]
+#[allow(clippy::large_enum_variant)]
+mod grammar {
+    include!(concat!(env!("OUT_DIR"), "/parser/grammar.rs"));
+}
 
 pub use grammar::*;
 
