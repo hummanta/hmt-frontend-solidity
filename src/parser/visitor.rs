@@ -18,18 +18,23 @@ use crate::{helpers::CodeLocationExt, parser::ast::*};
 
 /// A trait that is invoked while traversing the Solidity Parse Tree.
 /// Each method of the [Visitor] trait is a hook that can be potentially overridden.
-pub trait Visitor {
+pub trait Visitor
+where
+    Self: Sized,
+{
     type Error: std::error::Error;
 
     fn visit_source(&mut self, _loc: Loc) -> Result<(), Self::Error> {
         Ok(())
     }
 
-    fn visit_source_unit(&mut self, _source_unit: &mut SourceUnit) -> Result<(), Self::Error> {
-        Ok(())
+    fn visit_source_unit(&mut self, source_unit: &mut SourceUnit) -> Result<(), Self::Error> {
+        source_unit.0.visit(self)
     }
 
-    fn visit_contract(&mut self, _contract: &mut ContractDefinition) -> Result<(), Self::Error> {
+    fn visit_contract(&mut self, contract: &mut ContractDefinition) -> Result<(), Self::Error> {
+        contract.base.visit(self)?;
+        contract.parts.visit(self)?;
         Ok(())
     }
 
@@ -45,6 +50,16 @@ pub trait Visitor {
         };
 
         self.visit_source(*loc)
+    }
+
+    fn visit_import(&mut self, import: &mut Import) -> Result<(), Self::Error> {
+        match import {
+            Import::Plain(import, loc) => self.visit_import_plain(*loc, import),
+            Import::GlobalSymbol(global, import_as, loc) => {
+                self.visit_import_global(*loc, global, import_as)
+            }
+            Import::Rename(from, imports, loc) => self.visit_import_renames(*loc, imports, from),
+        }
     }
 
     fn visit_import_plain(
@@ -475,7 +490,7 @@ impl Visitable for SourceUnitPart {
         match self {
             Self::ContractDefinition(contract) => v.visit_contract(contract),
             Self::PragmaDirective(pragma) => v.visit_pragma(pragma),
-            Self::ImportDirective(import) => import.visit(v),
+            Self::ImportDirective(import) => v.visit_import(import),
             Self::EnumDefinition(enumeration) => v.visit_enum(enumeration),
             Self::StructDefinition(structure) => v.visit_struct(structure),
             Self::EventDefinition(event) => v.visit_event(event),
@@ -485,22 +500,7 @@ impl Visitable for SourceUnitPart {
             Self::TypeDefinition(def) => v.visit_type_definition(def),
             Self::StraySemicolon(_) => v.visit_stray_semicolon(),
             Self::Using(using) => v.visit_using(using),
-            Self::Annotation(annotation) => annotation.visit(v),
-        }
-    }
-}
-
-impl Visitable for Import {
-    fn visit<V>(&mut self, v: &mut V) -> Result<(), V::Error>
-    where
-        V: Visitor,
-    {
-        match self {
-            Self::Plain(import, loc) => v.visit_import_plain(*loc, import),
-            Self::GlobalSymbol(global, import_as, loc) => {
-                v.visit_import_global(*loc, global, import_as)
-            }
-            Self::Rename(from, imports, loc) => v.visit_import_renames(*loc, imports, from),
+            Self::Annotation(annotation) => v.visit_annotation(annotation),
         }
     }
 }
@@ -520,7 +520,7 @@ impl Visitable for ContractPart {
             Self::TypeDefinition(def) => v.visit_type_definition(def),
             Self::StraySemicolon(_) => v.visit_stray_semicolon(),
             Self::Using(using) => v.visit_using(using),
-            Self::Annotation(annotation) => annotation.visit(v),
+            Self::Annotation(annotation) => v.visit_annotation(annotation),
         }
     }
 }
@@ -646,6 +646,7 @@ macro_rules! impl_visitable {
 }
 
 impl_visitable!(SourceUnit, visit_source_unit);
+impl_visitable!(Import, visit_import);
 impl_visitable!(Annotation, visit_annotation);
 impl_visitable!(FunctionAttribute, visit_function_attribute);
 impl_visitable!(VariableAttribute, visit_var_attribute);

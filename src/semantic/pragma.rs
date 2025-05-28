@@ -128,15 +128,13 @@ pub enum PragmaResolverError {
 impl<'a> SemanticVisitor for PragmaResolver<'a> {
     /// Visits a source unit and processes any pragma directives found,
     /// and rejects any annotations on pragma directives.
-    fn visit_sema_source_unit(
+    fn visit_sema_source_unit_part(
         &mut self,
-        source_unit: &mut ast::SourceUnit,
+        part: &mut ast::SourceUnitPart,
     ) -> Result<(), Self::Error> {
-        for part in source_unit.parts.iter_mut() {
-            if matches!(part.part, pt::SourceUnitPart::PragmaDirective(_)) {
-                self.ctx.reject(&part.annotations, "pragma");
-                part.visit(self)?;
-            }
+        if matches!(part.part, pt::SourceUnitPart::PragmaDirective(_)) {
+            self.ctx.reject(&part.annotations, "pragma");
+            part.visit(self)?;
         }
 
         Ok(())
