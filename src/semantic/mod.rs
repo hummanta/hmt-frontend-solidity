@@ -16,11 +16,12 @@ pub mod analyzer;
 pub mod ast;
 pub mod collector;
 pub mod context;
-pub(crate) mod contract;
-pub(crate) mod expression;
+pub mod contract;
+pub mod expression;
 pub mod file;
 pub mod import;
 pub mod pragma;
+pub mod types;
 pub mod visitor;
 
 use self::context::Context;

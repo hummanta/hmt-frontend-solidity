@@ -21,21 +21,44 @@ use crate::{
     parser::ast as pt,
 };
 
-use super::{
-    ast::{Contract, Pragma, Symbol},
-    file::File,
-};
+use super::{ast::*, file::File};
 
 /// Holds all the resolved symbols and types.
+#[derive(Debug)]
 pub struct Context {
     pub pragmas: Vec<Pragma>,
     pub files: Vec<File>,
+    pub enums: Vec<EnumDecl>,
+    pub structs: Vec<StructDecl>,
+    pub events: Vec<EventDecl>,
+    pub errors: Vec<ErrorDecl>,
     pub contracts: Vec<Contract>,
+    /// Global using declarations
+    pub using: Vec<Using>,
+    /// All type declarations
+    pub user_types: Vec<UserTypeDecl>,
+    /// All functions
+    pub functions: Vec<Function>,
+    /// Yul functions
+    // pub yul_functions: Vec<YulFunction>,
+    /// Global constants
+    pub constants: Vec<Variable>,
+    /// address length in bytes
+    pub address_length: usize,
+    /// value length in bytes
+    pub value_length: usize,
     pub diagnostics: Diagnostics,
     /// There is a separate namespace for functions and non-functions
     pub function_symbols: HashMap<(usize, Option<usize>, String), Symbol>,
-    /// Symbol key is file number, contract, identifier
+    /// Symbol key is file_no, contract, identifier
     pub variable_symbols: HashMap<(usize, Option<usize>, String), Symbol>,
+    // each variable in the symbol table should have a unique number
+    pub next_id: usize,
+    /// For a variable reference at a location, give the constant value
+    /// This for use by the language server to show the value of a variable at a location
+    // pub var_constants: HashMap<pt::Loc, codegen::Expression>,
+    /// Overrides for hover in the language server
+    pub hover_overrides: HashMap<pt::Loc, String>,
 }
 
 impl Context {
@@ -60,6 +83,10 @@ impl Context {
             Some(Symbol::Enum(..)) => Diagnostic::builder(id.loc, Level::Error)
                 .ty(ErrorType::DeclarationError)
                 .message(format!("'{}' is an enum", id.name))
+                .build(),
+            Some(Symbol::Struct(..)) => Diagnostic::builder(id.loc, Level::Error)
+                .ty(ErrorType::DeclarationError)
+                .message(format!("'{}' is a struct", id.name))
                 .build(),
             Some(Symbol::Event(_)) => Diagnostic::builder(id.loc, Level::Error)
                 .ty(ErrorType::DeclarationError)
