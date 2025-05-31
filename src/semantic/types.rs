@@ -12,10 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use indexmap::IndexMap;
 use thiserror::Error;
 
 use crate::{
-    diagnostics::Diagnostic,
+    diagnostics::{Diagnostic, Level},
     helpers::CodeLocation,
     parser::{
         ast as pt,
@@ -25,7 +26,8 @@ use crate::{
 
 use super::{
     ast::{
-        ContractDefinition, ErrorDecl, EventDecl, SourceUnitPart, StructDecl, StructType, Symbol,
+        ContractDefinition, EnumDecl, ErrorDecl, EventDecl, SourceUnitPart, StructDecl, StructType,
+        Symbol, Type,
     },
     context::Context,
     visitor::SemanticVisitor,
@@ -74,6 +76,74 @@ impl<'a> TypeResolver<'a> {
     pub fn new(ctx: &'a mut Context, no: usize) -> Self {
         Self { ctx, no, delay: ResolveFields::default(), part: None }
     }
+
+    /// Parse enum declaration. If the declaration is invalid, it is still generated
+    /// so that we can continue parsing, with errors recorded.
+    fn enum_decl(&mut self, def: &pt::EnumDefinition, contract_no: Option<usize>) -> bool {
+        let mut valid = true;
+
+        if def.values.is_empty() {
+            self.ctx.diagnostics.push(Diagnostic::error(
+                def.name.as_ref().unwrap().loc,
+                format!("enum '{}' has no fields", def.name.as_ref().unwrap().name),
+            ));
+            valid = false;
+        } else if def.values.len() > 256 {
+            self.ctx.diagnostics.push(Diagnostic::error(
+                def.name.as_ref().unwrap().loc,
+                format!(
+                    "enum '{}' has {} fields, which is more than the 256 limit",
+                    def.name.as_ref().unwrap().name,
+                    def.values.len()
+                ),
+            ));
+            valid = false;
+        }
+
+        // check for duplicates
+        let mut entries: IndexMap<String, pt::Loc> = IndexMap::new();
+
+        for e in def.values.iter() {
+            if let Some(prev) = entries.get(&e.as_ref().unwrap().name.to_string()) {
+                self.ctx.diagnostics.push(
+                    Diagnostic::builder(e.as_ref().unwrap().loc, Level::Error)
+                        .message(format!("duplicate enum value {}", e.as_ref().unwrap().name))
+                        .note(*prev, "location of previous definition")
+                        .build(),
+                );
+                valid = false;
+                continue;
+            }
+
+            entries.insert(e.as_ref().unwrap().name.to_string(), e.as_ref().unwrap().loc);
+        }
+
+        let decl = EnumDecl {
+            id: def.name.clone().unwrap(),
+            loc: def.loc,
+            contract: match contract_no {
+                Some(c) => Some(self.ctx.contracts[c].id.name.to_owned()),
+                None => None,
+            },
+            ty: Type::Uint(8),
+            values: entries,
+        };
+
+        let pos = self.ctx.enums.len();
+
+        self.ctx.enums.push(decl);
+
+        if !self.ctx.add_symbol(
+            self.no,
+            contract_no,
+            def.name.as_ref().unwrap(),
+            Symbol::Enum(def.name.as_ref().unwrap().loc, pos),
+        ) {
+            valid = false;
+        }
+
+        valid
+    }
 }
 
 /// Internal error type for type resolution logic
@@ -102,8 +172,10 @@ impl<'a> SemanticVisitor for TypeResolver<'a> {
 impl<'a> Visitor for TypeResolver<'a> {
     type Error = TypeResolverError;
 
-    fn visit_enum(&mut self, _def: &mut pt::EnumDefinition) -> Result<(), Self::Error> {
+    fn visit_enum(&mut self, def: &mut pt::EnumDefinition) -> Result<(), Self::Error> {
         self.ctx.reject(&self.part.as_ref().unwrap().annotations, "enum");
+        let _ = self.enum_decl(def, None);
+
         Ok(())
     }
 

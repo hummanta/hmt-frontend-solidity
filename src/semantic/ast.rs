@@ -253,7 +253,7 @@ impl fmt::Display for StructDecl {
 
 #[derive(Debug)]
 pub struct EnumDecl {
-    pub tags: Vec<Tag>,
+    // pub tags: Vec<Tag>,
     pub id: pt::Identifier,
     pub contract: Option<String>,
     pub loc: pt::Loc,
