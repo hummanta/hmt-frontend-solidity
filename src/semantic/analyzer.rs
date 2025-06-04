@@ -20,7 +20,7 @@ use super::{
 use crate::{
     parser::{parse, visitor::Visitable},
     resolver::{FileResolver, ResolvedFile},
-    semantic::{types::TypeResolver, using::UsingResolver},
+    semantic::{semicolon::StraySemicolonChecker, types::TypeResolver, using::UsingResolver},
 };
 
 use anyhow::{bail, Result};
@@ -62,6 +62,9 @@ pub(crate) fn analyze(
 
     // Now we can resolve the global using directives
     tree.visit(&mut UsingResolver::new(ctx, no, None))?;
+
+    // Check for stray semicolons
+    ast.visit(&mut StraySemicolonChecker::new(ctx))?;
 
     Ok(())
 }

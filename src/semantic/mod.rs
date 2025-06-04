@@ -21,6 +21,7 @@ pub mod expression;
 pub mod file;
 pub mod import;
 pub mod pragma;
+pub mod semicolon;
 pub mod types;
 pub mod using;
 pub mod visitor;
