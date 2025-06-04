@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use indexmap::IndexMap;
+use std::fmt::Write;
 use thiserror::Error;
 
 use crate::{
@@ -22,6 +23,7 @@ use crate::{
         ast as pt,
         visitor::{Visitable, Visitor},
     },
+    semantic::ast::{ArrayLength, Mapping},
 };
 
 use super::{
@@ -58,6 +60,91 @@ struct ResolveStructFields {
     struct_no: usize,
     pt: pt::StructDefinition,
     contract: Option<usize>,
+}
+
+impl Type {
+    pub fn to_string(&self, ctx: &Context) -> String {
+        match self {
+            Type::Bool => "bool".to_string(),
+            Type::Address(false) => "address".to_string(),
+            Type::Address(true) => "address payable".to_string(),
+            Type::Int(n) => format!("int{n}"),
+            Type::Uint(n) => format!("uint{n}"),
+            Type::Rational => "rational".to_string(),
+            Type::Value => format!("uint{}", ctx.value_length * 8),
+            Type::Bytes(n) => format!("bytes{n}"),
+            Type::String => "string".to_string(),
+            Type::DynamicBytes => "bytes".to_string(),
+            Type::Enum(n) => format!("enum {}", ctx.enums[*n]),
+            Type::Struct(str_ty) => format!("struct {}", str_ty.definition(ctx)),
+            Type::Array(ty, len) => format!(
+                "{}{}",
+                ty.to_string(ctx),
+                len.iter()
+                    .map(|len| match len {
+                        ArrayLength::Fixed(len) => format!("[{len}]"),
+                        _ => "[]".to_string(),
+                    })
+                    .collect::<String>()
+            ),
+            Type::Mapping(Mapping { key, key_name, value, value_name }) => {
+                format!(
+                    "mapping({}{}{} => {}{}{})",
+                    key.to_string(ctx),
+                    if key_name.is_some() { " " } else { "" },
+                    key_name.as_ref().map(|id| id.name.as_str()).unwrap_or(""),
+                    value.to_string(ctx),
+                    if value_name.is_some() { " " } else { "" },
+                    value_name.as_ref().map(|id| id.name.as_str()).unwrap_or(""),
+                )
+            }
+            Type::ExternalFunction { params, mutability, returns } |
+            Type::InternalFunction { params, mutability, returns } => {
+                let mut s = format!(
+                    "function({}) {}",
+                    params.iter().map(|ty| ty.to_string(ctx)).collect::<Vec<String>>().join(","),
+                    if matches!(self, Type::InternalFunction { .. }) {
+                        "internal"
+                    } else {
+                        "external"
+                    }
+                );
+
+                if !mutability.is_default() {
+                    write!(s, " {mutability}").unwrap();
+                }
+
+                if !returns.is_empty() {
+                    write!(
+                        s,
+                        " returns ({})",
+                        returns
+                            .iter()
+                            .map(|ty| ty.to_string(ctx))
+                            .collect::<Vec<String>>()
+                            .join(",")
+                    )
+                    .unwrap();
+                }
+
+                s
+            }
+            Type::Contract(n) => format!("contract {}", ctx.contracts[*n].id),
+            Type::UserType(n) => format!("usertype {}", ctx.user_types[*n]),
+            Type::Ref(r) => r.to_string(ctx),
+            Type::StorageRef(_, ty) => {
+                format!("{} storage", ty.to_string(ctx))
+            }
+            Type::Void => "void".into(),
+            Type::Unreachable => "unreachable".into(),
+            // A slice of bytes1 is like bytes
+            Type::Slice(ty) if **ty == Type::Bytes(1) => "bytes".into(),
+            Type::Slice(ty) => format!("{}[]", ty.to_string(ctx)),
+            Type::Unresolved => "unresolved".into(),
+            Type::BufferPointer => "buffer_pointer".into(),
+            Type::FunctionSelector => "function_selector".into(),
+        }
+    }
 }
 
 /// Resolve all the types we can find (enums, structs, contracts).

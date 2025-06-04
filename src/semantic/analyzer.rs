@@ -20,6 +20,7 @@ use super::{
 use crate::{
     parser::{parse, visitor::Visitable},
     resolver::{FileResolver, ResolvedFile},
+    semantic::{types::TypeResolver, using::UsingResolver},
 };
 
 use anyhow::{bail, Result};
@@ -49,12 +50,18 @@ pub(crate) fn analyze(
     ast.visit(&mut collector)?;
     let mut tree = collector.collect();
 
+    // First resolve all the types we can find
+    tree.visit(&mut TypeResolver::new(ctx, no))?;
+
     // Resolve pragmas and imports
     tree.visit(&mut PragmaResolver::new(ctx))?;
     tree.visit(&mut ImportResolver::new(ctx, resolver, Some(file), no))?;
 
     // Resolve the base contracts list and check for cycles.
     tree.visit(&mut ContractResolver::new(ctx, no))?;
+
+    // Now we can resolve the global using directives
+    tree.visit(&mut UsingResolver::new(ctx, no, None))?;
 
     Ok(())
 }

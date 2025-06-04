@@ -23,6 +23,15 @@ use crate::{
 
 use super::{ast::*, file::File};
 
+/// Provides context information for the `resolve_type` function.
+#[derive(PartialEq, Eq)]
+#[allow(dead_code)]
+pub(super) enum ResolveTypeContext {
+    None,
+    Casting,
+    FunctionType,
+}
+
 /// Holds all the resolved symbols and types.
 #[derive(Debug)]
 pub struct Context {
@@ -150,6 +159,30 @@ impl Context {
         }
     }
 
+    /// Resolve a free function name with namespace
+    pub(super) fn resolve_function_with_namespace(
+        &self,
+        file_no: usize,
+        contract_no: Option<usize>,
+        name: &pt::IdentifierPath,
+        diagnostics: &mut Diagnostics,
+    ) -> Result<Vec<(pt::Loc, usize)>, ()> {
+        let (id, namespace) = name
+            .identifiers
+            .split_last()
+            .map(|(id, namespace)| (id, namespace.iter().collect()))
+            .unwrap();
+
+        let symbol = self.resolve_namespace(namespace, file_no, contract_no, id, diagnostics)?;
+
+        if let Some(Symbol::Function(list)) = symbol {
+            Ok(list.clone())
+        } else {
+            diagnostics.push(Context::wrong_symbol(symbol, id));
+            Err(())
+        }
+    }
+
     /// Resolve the type name with the namespace to a symbol
     fn resolve_namespace(
         &self,
@@ -159,6 +192,20 @@ impl Context {
         _id: &pt::Identifier,
         _diagnostics: &mut Diagnostics,
     ) -> Result<Option<&Symbol>, ()> {
+        todo!()
+    }
+
+    /// Resolve the parsed data type. The type can be a primitive, enum and also an arrays.
+    /// The type for address payable is "address payable" used as a type, and "payable" when
+    /// casting. So, we need to know what we are resolving for.
+    pub(super) fn resolve_type(
+        &mut self,
+        _file_no: usize,
+        _contract_no: Option<usize>,
+        _resolve_context: ResolveTypeContext,
+        _id: &pt::Expression,
+        _diagnostics: &mut Diagnostics,
+    ) -> Result<Type, ()> {
         todo!()
     }
 }

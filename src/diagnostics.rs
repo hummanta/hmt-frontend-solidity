@@ -260,7 +260,7 @@ impl<'a, S: Span> ReportToStringExt<'a, S> for Report<'a, S> {
 ///
 /// Maintains a list of diagnostics and tracks whether any errors are present.
 /// Provides methods for adding diagnostics and checking error status.
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct Diagnostics {
     contents: Vec<Diagnostic>,
     has_error: bool,

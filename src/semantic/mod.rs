@@ -22,6 +22,7 @@ pub mod file;
 pub mod import;
 pub mod pragma;
 pub mod types;
+pub mod using;
 pub mod visitor;
 
 use self::context::Context;

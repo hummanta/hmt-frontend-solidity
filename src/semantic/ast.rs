@@ -181,10 +181,22 @@ impl Type {
 #[derive(PartialEq, Eq, Clone, Debug, Copy, Hash)]
 pub enum StructType {
     UserDefined(usize),
-    AccountInfo,
-    AccountMeta,
-    ExternalFunction,
-    SolParameters,
+    // AccountInfo,
+    // AccountMeta,
+    // ExternalFunction,
+    // SolParameters,
+}
+
+impl StructType {
+    pub fn definition<'a>(&'a self, ctx: &'a Context) -> &'a StructDecl {
+        match self {
+            StructType::UserDefined(struct_no) => &ctx.structs[*struct_no],
+            // StructType::AccountInfo => &BUILTIN_STRUCTS[0].struct_decl,
+            // StructType::AccountMeta => &BUILTIN_STRUCTS[1].struct_decl,
+            // StructType::ExternalFunction => &BUILTIN_STRUCTS[2].struct_decl,
+            // StructType::SolParameters => unreachable!("SolParameters is defined in a solana.c"),
+        }
+    }
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -383,7 +395,7 @@ pub struct Function {
     /// For overloaded functions this is the mangled (unique) name.
     pub mangled_name: String,
     /// Solana constructors may have seeds specified using @seed tags
-    pub annotatioctx: ConstructorAnnotations,
+    pub annotations: ConstructorAnnotations,
     /// Which contracts should we use the mangled name in?
     pub mangled_name_contracts: HashSet<usize>,
     /// This indexmap stores the accounts this functions needs to be called on Solana
@@ -497,7 +509,7 @@ impl Function {
             // symtable: Symtable::default(),
             emits_events: Vec::new(),
             mangled_name,
-            annotatioctx: ConstructorAnnotations::default(),
+            annotations: ConstructorAnnotations::default(),
             mangled_name_contracts: HashSet::new(),
             solana_accounts: IndexMap::new().into(),
             creates: Vec::new(),
@@ -543,12 +555,12 @@ impl Function {
 
     /// Does this function have an @payer annotation?
     pub fn has_payer_annotation(&self) -> bool {
-        self.annotatioctx.payer.is_some()
+        self.annotations.payer.is_some()
     }
 
     /// Does this function have an @seed annotation?
     pub fn has_seed_annotation(&self) -> bool {
-        !self.annotatioctx.seeds.is_empty()
+        !self.annotations.seeds.is_empty()
     }
 
     /// Does this function have the pure state
