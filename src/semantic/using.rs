@@ -36,12 +36,13 @@ pub struct UsingResolver<'a> {
     ctx: &'a mut Context,
     no: usize,
     contract_no: Option<usize>,
+    using: Option<Using>,
 }
 
 impl<'a> UsingResolver<'a> {
     /// Creates a new using resolver with the given context
     pub fn new(ctx: &'a mut Context, no: usize, contract_no: Option<usize>) -> Self {
-        Self { ctx, no, contract_no }
+        Self { ctx, no, contract_no, using: None }
     }
 
     fn resolve_library(
@@ -335,6 +336,10 @@ impl<'a> UsingResolver<'a> {
             ));
         }
     }
+
+    pub fn finish(&mut self) -> Option<Using> {
+        self.using.take()
+    }
 }
 
 /// Internal error type for using resolution logic
@@ -352,6 +357,10 @@ impl<'a> SemanticVisitor for UsingResolver<'a> {
         if let pt::SourceUnitPart::Using(_) = part.part {
             self.ctx.reject(&part.annotations, "using");
             part.visit(self)?;
+
+            if let Some(using) = self.finish() {
+                self.ctx.using.push(using);
+            }
         }
         Ok(())
     }
@@ -420,7 +429,7 @@ impl<'a> Visitor for UsingResolver<'a> {
         }
 
         self.ctx.diagnostics.extend(diagnostics);
-        self.ctx.using.push(Using { list, ty, file_no });
+        self.using.replace(Using { list, ty, file_no });
 
         Ok(())
     }

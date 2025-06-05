@@ -19,11 +19,14 @@ pub mod context;
 pub mod contract;
 pub mod expression;
 pub mod file;
+pub mod function;
 pub mod import;
 pub mod pragma;
 pub mod semicolon;
+pub mod symtable;
 pub mod types;
 pub mod using;
+pub mod variable;
 pub mod visitor;
 
 use self::context::Context;

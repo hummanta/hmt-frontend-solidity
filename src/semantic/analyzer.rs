@@ -12,15 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::{
-    collector::AnnotationCollector, context::Context, contract::BaseContractResolver, file::File,
-    import::ImportResolver, pragma::PragmaResolver, visitor::SemanticVisitable,
-};
-
 use crate::{
     parser::{parse, visitor::Visitable},
     resolver::{FileResolver, ResolvedFile},
-    semantic::{semicolon::StraySemicolonChecker, types::TypeResolver, using::UsingResolver},
+    semantic::{
+        collector::AnnotationCollector,
+        context::Context,
+        contract::{BaseContractResolver, ContractResolver},
+        file::File,
+        import::ImportResolver,
+        pragma::PragmaResolver,
+        semicolon::StraySemicolonChecker,
+        types::TypeResolver,
+        using::UsingResolver,
+        visitor::SemanticVisitable,
+    },
 };
 
 use anyhow::{bail, Result};
@@ -62,6 +68,9 @@ pub(crate) fn analyze(
 
     // Now we can resolve the global using directives
     tree.visit(&mut UsingResolver::new(ctx, no, None))?;
+
+    // Now resolve the contracts
+    tree.visit(&mut ContractResolver::new(ctx, no))?;
 
     // Check for stray semicolons
     ast.visit(&mut StraySemicolonChecker::new(ctx))?;

@@ -44,6 +44,7 @@ pub struct SourceUnitPart {
     pub part: pt::SourceUnitPart,
 }
 
+#[derive(Clone)]
 pub struct ContractPart {
     pub annotations: Vec<pt::Annotation>,
     pub part: pt::ContractPart,
@@ -622,7 +623,7 @@ impl fmt::Display for UserTypeDecl {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Variable {
     pub tags: Vec<Tag>,
     pub name: String,

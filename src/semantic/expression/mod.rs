@@ -12,16 +12,57 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::collections::HashMap;
+
 use crate::{
     diagnostics::Diagnostics,
     parser::ast as pt,
     semantic::{
         ast::{Expression, Type},
         context::Context,
+        symtable::{LoopScopes, Symtable, VarScope},
     },
 };
 
-pub(crate) mod strings;
+pub mod constructor;
+pub mod strings;
+
+#[derive(Default)]
+pub struct ExprContext {
+    /// What source file are we in
+    pub no: usize,
+    // Are we resolving a contract, and if so, which one
+    pub contract_no: Option<usize>,
+    /// Are resolving the body of a function, and if so, which one
+    pub function_no: Option<usize>,
+    /// Are we currently in an unchecked block
+    pub unchecked: bool,
+    /// Are we evaluating a constant expression
+    pub constant: bool,
+    /// Are we resolving an l-value
+    pub lvalue: bool,
+    /// Are we resolving a yul function (it cannot have external dependencies)
+    pub yul_function: bool,
+    /// Loops nesting
+    pub loops: LoopScopes,
+    /// Stack of currently active variable scopes
+    pub active_scopes: Vec<VarScope>,
+    /// Solidity v0.5 and earlier don't complain about emit resolving to multiple events
+    pub ambiguous_emit: bool,
+}
+
+impl ExprContext {
+    pub fn enter_scope(&mut self) {
+        self.active_scopes.push(VarScope { loc: None, names: HashMap::new() });
+    }
+
+    pub fn leave_scope(&mut self, symtable: &mut Symtable, loc: pt::Loc) {
+        if let Some(mut curr_scope) = self.active_scopes.pop() {
+            curr_scope.loc = Some(loc);
+            symtable.scopes.push(curr_scope);
+        }
+    }
+}
 
 impl Expression {
     /// Cast from one type to another, which also automatically derefs any Type::Ref() type.
