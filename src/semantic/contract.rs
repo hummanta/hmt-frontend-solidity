@@ -24,15 +24,16 @@ use crate::{
 
 use super::{ast::Base, context::Context, visitor::SemanticVisitor};
 
-pub struct ContractResolver<'a> {
+/// Resolve the base contracts list and check for cycles.
+pub struct BaseContractResolver<'a> {
     /// Shared context for diagnostics and state
     ctx: &'a mut Context,
     no: usize,
     contract_no: usize,
 }
 
-impl<'a> ContractResolver<'a> {
-    /// Creates a new contract resolver with the given context
+impl<'a> BaseContractResolver<'a> {
+    /// Creates a new base contract resolver with the given context
     pub fn new(ctx: &'a mut Context, no: usize) -> Self {
         Self { ctx, no, contract_no: 0 }
     }
@@ -53,7 +54,7 @@ impl<'a> ContractResolver<'a> {
 #[derive(Debug, Error)]
 pub enum ContractResolverError {}
 
-impl<'a> SemanticVisitor for ContractResolver<'a> {
+impl<'a> SemanticVisitor for BaseContractResolver<'a> {
     fn visit_sema_contract(
         &mut self,
         contract: &mut super::ast::ContractDefinition,
@@ -65,7 +66,7 @@ impl<'a> SemanticVisitor for ContractResolver<'a> {
     }
 }
 
-impl<'a> Visitor for ContractResolver<'a> {
+impl<'a> Visitor for BaseContractResolver<'a> {
     type Error = ContractResolverError;
 
     fn visit_base(&mut self, base: &mut pt::Base) -> Result<(), Self::Error> {

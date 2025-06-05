@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use super::{
-    collector::AnnotationCollector, context::Context, contract::ContractResolver, file::File,
+    collector::AnnotationCollector, context::Context, contract::BaseContractResolver, file::File,
     import::ImportResolver, pragma::PragmaResolver, visitor::SemanticVisitable,
 };
 
@@ -58,7 +58,7 @@ pub(crate) fn analyze(
     tree.visit(&mut ImportResolver::new(ctx, resolver, Some(file), no))?;
 
     // Resolve the base contracts list and check for cycles.
-    tree.visit(&mut ContractResolver::new(ctx, no))?;
+    tree.visit(&mut BaseContractResolver::new(ctx, no))?;
 
     // Now we can resolve the global using directives
     tree.visit(&mut UsingResolver::new(ctx, no, None))?;
