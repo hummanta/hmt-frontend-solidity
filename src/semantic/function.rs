@@ -95,10 +95,13 @@ impl<'a> Visitor for FunctionResolver<'a> {
         self.is_internal = true;
         self.contract_no = None;
 
-        func.params.visit(self)?;
+        for (loc, parameter) in &func.params {
+            self.visit_function_parameter(loc, parameter)?;
+        }
 
-        // let (returns, returns_success) =
-        //     resolve_returns(&func.returns, true, self.no, None, self.ctx, &mut diagnostics);
+        for (loc, parameter) in &func.returns {
+            self.visit_function_return(loc, parameter)?;
+        }
 
         if func.body.is_none() {
             self.ctx
@@ -245,8 +248,9 @@ impl<'a> Visitor for FunctionResolver<'a> {
         Ok(())
     }
 
+    // @TODO: extract commom logic to visit_parameter()
     /// Resolve the parameter
-    fn visit_parameter(
+    fn visit_function_parameter(
         &mut self,
         loc: &Loc,
         parameter: &Option<pt::Parameter>,
@@ -279,7 +283,6 @@ impl<'a> Visitor for FunctionResolver<'a> {
         };
 
         let mut ty_loc = parameter.ty.loc();
-
         let mut diagnostics = Diagnostics::default();
 
         match self.ctx.resolve_type(
@@ -358,6 +361,115 @@ impl<'a> Visitor for FunctionResolver<'a> {
                 });
             }
             Err(()) => self.params_success = false,
+        }
+        self.ctx.diagnostics.extend(diagnostics);
+
+        Ok(())
+    }
+
+    // @TODO: extract commom logic to visit_parameter()
+    /// Resolve the return values
+    fn visit_function_return(
+        &mut self,
+        loc: &Loc,
+        parameter: &Option<pt::Parameter>,
+    ) -> Result<(), Self::Error> {
+        let parameter = match parameter {
+            Some(pt::Parameter { annotation: Some(annotation), .. }) => {
+                self.ctx.diagnostics.push(Diagnostic::error(
+                    annotation.loc,
+                    "parameter annotations are only allowed in constructors",
+                ));
+                self.returns_success = false;
+                return Ok(());
+            }
+            Some(r) => r,
+            None => {
+                self.ctx.diagnostics.push(Diagnostic::error(*loc, "missing return type"));
+                self.returns_success = false;
+                return Ok(());
+            }
+        };
+
+        let mut ty_loc = parameter.ty.loc();
+        let mut diagnostics = Diagnostics::default();
+
+        match self.ctx.resolve_type(
+            self.no,
+            self.contract_no,
+            ResolveTypeContext::None,
+            &parameter.ty,
+            &mut diagnostics,
+        ) {
+            Ok(ty) => {
+                if !self.is_internal && ty.contains_internal_function(self.ctx) {
+                    self.ctx.diagnostics.push(Diagnostic::error(
+                        parameter.ty.loc(),
+                        "return type 'function internal' not allowed in public or external functions"                            ,
+                    ));
+                    self.returns_success = false;
+                }
+
+                let ty = if !ty.can_have_data_location() {
+                    if let Some(storage) = &parameter.storage {
+                        self.ctx. diagnostics.push(Diagnostic::error(
+                            storage.loc(),
+                            format!("data location '{storage}' can only be specified for array, struct or mapping")
+                        ));
+                        self.returns_success = false;
+                    }
+
+                    ty
+                } else {
+                    match parameter.storage {
+                        Some(pt::StorageLocation::Storage(loc)) => {
+                            if !self.is_internal {
+                                self.ctx.diagnostics.push(Diagnostic::error(
+                                    loc,
+                                    "return type of type 'storage' not allowed public or external functions"                                        ,
+                                ));
+                                self.returns_success = false;
+                            }
+
+                            ty_loc.use_end_from(&loc);
+
+                            Type::StorageRef(false, Box::new(ty))
+                        }
+                        _ => {
+                            if ty.contains_mapping(self.ctx) {
+                                diagnostics.push(Diagnostic::error(
+                                    parameter.ty.loc(),
+                                    "return type containing mapping must be of type 'storage'",
+                                ));
+                                self.returns_success = false;
+                            }
+
+                            if !ty.fits_in_memory(self.ctx) {
+                                self.ctx.diagnostics.push(Diagnostic::error(
+                                    parameter.ty.loc(),
+                                    "type is too large to fit into memory",
+                                ));
+                                self.returns_success = false;
+                            }
+
+                            ty
+                        }
+                    }
+                };
+
+                self.returns.push(Parameter {
+                    loc: *loc,
+                    id: parameter.name.clone(),
+                    ty,
+                    ty_loc: Some(ty_loc),
+                    indexed: false,
+                    readonly: false,
+                    infinite_size: false,
+                    recursive: false,
+                    annotation: None,
+                });
+            }
+            Err(()) => self.returns_success = false,
         }
         self.ctx.diagnostics.extend(diagnostics);
 

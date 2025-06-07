@@ -272,6 +272,22 @@ where
         Ok(())
     }
 
+    fn visit_function_parameter(
+        &mut self,
+        _loc: &Loc,
+        _parameter: &Option<Parameter>,
+    ) -> Result<(), Self::Error> {
+        Ok(())
+    }
+
+    fn visit_function_return(
+        &mut self,
+        _loc: &Loc,
+        _parameter: &Option<Parameter>,
+    ) -> Result<(), Self::Error> {
+        Ok(())
+    }
+
     fn visit_var_attribute(
         &mut self,
         attribute: &mut VariableAttribute,
@@ -284,12 +300,8 @@ where
         self.visit_source(base.loc)
     }
 
-    fn visit_parameter(
-        &mut self,
-        _loc: &Loc,
-        _parameter: &Option<Parameter>,
-    ) -> Result<(), Self::Error> {
-        Ok(())
+    fn visit_parameter(&mut self, parameter: &mut Parameter) -> Result<(), Self::Error> {
+        self.visit_source(parameter.loc)
     }
 
     fn visit_struct(&mut self, structure: &mut StructDefinition) -> Result<(), Self::Error> {
@@ -636,15 +648,6 @@ impl Visitable for YulStatement {
     }
 }
 
-impl Visitable for (Loc, Option<Parameter>) {
-    fn visit<V>(&mut self, v: &mut V) -> Result<(), V::Error>
-    where
-        V: Visitor,
-    {
-        v.visit_parameter(&self.0, &self.1)
-    }
-}
-
 macro_rules! impl_visitable {
     ($type:ty, $func:ident) => {
         impl Visitable for $type {
@@ -663,6 +666,7 @@ impl_visitable!(Import, visit_import);
 impl_visitable!(Annotation, visit_annotation);
 impl_visitable!(FunctionAttribute, visit_function_attribute);
 impl_visitable!(VariableAttribute, visit_var_attribute);
+impl_visitable!(Parameter, visit_parameter);
 impl_visitable!(Base, visit_base);
 impl_visitable!(EventParameter, visit_event_parameter);
 impl_visitable!(ErrorParameter, visit_error_parameter);
