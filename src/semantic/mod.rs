@@ -24,6 +24,7 @@ pub mod import;
 pub mod pragma;
 pub mod semicolon;
 pub mod symtable;
+pub mod tag;
 pub mod types;
 pub mod using;
 pub mod variable;

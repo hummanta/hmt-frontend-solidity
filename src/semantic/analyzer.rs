@@ -20,6 +20,7 @@ use crate::{
         context::Context,
         contract::{BaseContractResolver, ContractResolver},
         file::File,
+        function::FunctionResolver,
         import::ImportResolver,
         pragma::PragmaResolver,
         semicolon::StraySemicolonChecker,
@@ -65,6 +66,8 @@ pub(crate) fn analyze(
 
     // Resolve the base contracts list and check for cycles.
     tree.visit(&mut BaseContractResolver::new(ctx, no))?;
+
+    tree.visit(&mut FunctionResolver::new(ctx, no))?;
 
     // Now we can resolve the global using directives
     tree.visit(&mut UsingResolver::new(ctx, no, None))?;

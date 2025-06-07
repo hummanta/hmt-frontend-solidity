@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use indexmap::IndexMap;
-use std::fmt::Write;
+use std::{collections::HashSet, fmt::Write};
 use thiserror::Error;
 
 use crate::{
@@ -144,6 +144,71 @@ impl Type {
             Type::BufferPointer => "buffer_pointer".into(),
             Type::FunctionSelector => "function_selector".into(),
         }
+    }
+
+    /// Does the type contain any internal function type
+    pub fn contains_internal_function(&self, ctx: &Context) -> bool {
+        self.contains_internal_function_internal(ctx, &mut HashSet::new())
+    }
+
+    fn contains_internal_function_internal(
+        &self,
+        _ctx: &Context,
+        _structs_visited: &mut HashSet<usize>,
+    ) -> bool {
+        todo!()
+    }
+
+    /// Does the type contain any builtin type
+    pub fn contains_builtins<'a>(
+        &'a self,
+        ctx: &'a Context,
+        builtin: &StructType,
+    ) -> Option<&'a Type> {
+        self.contains_builtins_internal(ctx, builtin, &mut HashSet::new())
+    }
+
+    #[allow(unused_variables)]
+    fn contains_builtins_internal<'a>(
+        &'a self,
+        ctx: &'a Context,
+        builtin: &StructType,
+        structs_visited: &mut HashSet<usize>,
+    ) -> Option<&'a Type> {
+        todo!()
+    }
+
+    /// Does the type contain any mapping type
+    pub fn contains_mapping(&self, ctx: &Context) -> bool {
+        self.contains_mapping_internal(ctx, &mut HashSet::new())
+    }
+
+    #[allow(unused_variables)]
+    fn contains_mapping_internal(
+        &self,
+        ctx: &Context,
+        structs_visited: &mut HashSet<usize>,
+    ) -> bool {
+        todo!()
+    }
+
+    /// Does this type fit into memory
+    pub fn fits_in_memory(&self, _ctx: &Context) -> bool {
+        todo!()
+    }
+
+    /// Can this type have a calldata, memory, or storage location. This is to be
+    /// compatible with ethereum solidity. Opinions on whether other types should be
+    /// allowed be storage are welcome.
+    pub fn can_have_data_location(&self) -> bool {
+        matches!(
+            self,
+            Type::Array(..) |
+                Type::Struct(_) |
+                Type::Mapping(..) |
+                Type::String |
+                Type::DynamicBytes
+        )
     }
 }
 
