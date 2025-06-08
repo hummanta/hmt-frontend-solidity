@@ -13,15 +13,56 @@
 // limitations under the License.
 
 use crate::{
-    parser::ast as pt,
-    semantic::{ast::ContractDefinition, context::Context},
+    parser::{ast as pt, visitor::Visitor},
+    semantic::{
+        ast::ContractDefinition,
+        context::Context,
+        visitor::{SemanticVisitable, SemanticVisitor},
+    },
 };
+use thiserror::Error;
 
 #[allow(dead_code)]
 pub struct DelayedResolveInitializer {
     var_no: usize,
     contract_no: usize,
     initializer: pt::Expression,
+}
+
+#[allow(dead_code)]
+pub struct VariableResolver<'a> {
+    /// Shared context for diagnostics and state
+    ctx: &'a mut Context,
+    no: usize,
+}
+
+impl<'a> VariableResolver<'a> {
+    /// Creates a new variable resolver with the given context
+    pub fn new(ctx: &'a mut Context, no: usize) -> Self {
+        Self { ctx, no }
+    }
+}
+
+/// Internal error type for variable resolution logic
+#[derive(Debug, Error)]
+pub enum VariableResolverError {}
+
+impl<'a> SemanticVisitor for VariableResolver<'a> {
+    fn visit_sema_source_unit_part(
+        &mut self,
+        part: &mut super::ast::SourceUnitPart,
+    ) -> Result<(), Self::Error> {
+        if let pt::SourceUnitPart::VariableDefinition(_) = part.part {
+            self.ctx.reject(&part.annotations, "variable");
+            part.visit(self)?;
+        }
+
+        Ok(())
+    }
+}
+
+impl<'a> Visitor for VariableResolver<'a> {
+    type Error = VariableResolverError;
 }
 
 pub fn contract_variables(
