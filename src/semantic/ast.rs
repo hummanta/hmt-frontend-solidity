@@ -15,6 +15,7 @@
 use crate::{
     helpers::{CodeLocation, OptionalCodeLocation},
     parser::ast as pt,
+    semantic::symtable::Symtable,
 };
 
 use indexmap::IndexMap;
@@ -390,7 +391,7 @@ pub struct Function {
     pub has_body: bool,
     /// The resolved body (if any)
     pub body: Vec<Statement>,
-    // pub symtable: Symtable,
+    pub symtable: Symtable,
     /// What events are emitted by the body of this function
     pub emits_events: Vec<usize>,
     /// For overloaded functions this is the mangled (unique) name.
@@ -507,7 +508,7 @@ impl Function {
             has_body: false,
             is_override: None,
             body: Vec::new(),
-            // symtable: Symtable::default(),
+            symtable: Symtable::default(),
             emits_events: Vec::new(),
             mangled_name,
             annotations: ConstructorAnnotations::default(),

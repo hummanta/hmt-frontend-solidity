@@ -25,7 +25,17 @@ use crate::{
 };
 
 pub mod constructor;
+pub mod resolve_expression;
 pub mod strings;
+
+/// When resolving an expression, what type are we looking for
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
+pub enum ResolveTo<'a> {
+    Unknown,        // We don't know what we're looking for, best effort
+    Integer,        // Try to resolve to an integer type value (signed or unsigned, any bit width)
+    Discard,        // We won't be using the result. For example, an expression as a statement
+    Type(&'a Type), // We will be wanting this type please, e.g. `int64 x = 1;`
+}
 
 #[derive(Default)]
 pub struct ExprContext {

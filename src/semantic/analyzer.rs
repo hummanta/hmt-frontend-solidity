@@ -24,6 +24,7 @@ use crate::{
         import::ImportResolver,
         pragma::PragmaResolver,
         semicolon::StraySemicolonChecker,
+        symtable::Symtable,
         types::TypeResolver,
         using::UsingResolver,
         variable::VariableResolver,
@@ -69,7 +70,7 @@ pub(crate) fn analyze(
     tree.visit(&mut BaseContractResolver::new(ctx, no))?;
 
     tree.visit(&mut FunctionResolver::new(ctx, no))?;
-    tree.visit(&mut VariableResolver::new(ctx, no))?;
+    tree.visit(&mut VariableResolver::new(ctx, no, None, None, &mut Symtable::default()))?;
 
     // Now we can resolve the global using directives
     tree.visit(&mut UsingResolver::new(ctx, no, None))?;

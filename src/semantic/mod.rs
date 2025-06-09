@@ -17,6 +17,7 @@ pub mod ast;
 pub mod collector;
 pub mod context;
 pub mod contract;
+pub mod eval;
 pub mod expression;
 pub mod file;
 pub mod function;

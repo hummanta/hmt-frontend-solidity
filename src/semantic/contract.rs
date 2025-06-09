@@ -45,17 +45,6 @@ impl<'a> BaseContractResolver<'a> {
     pub fn new(ctx: &'a mut Context, no: usize) -> Self {
         Self { ctx, no, contract_no: 0 }
     }
-
-    // Is a contract a base of another contract
-    pub fn is_base(&self, base: usize, derived: usize) -> bool {
-        let bases = &self.ctx.contracts[derived].bases;
-
-        if base == derived || bases.iter().any(|e| e.contract_no == base) {
-            return true;
-        }
-
-        bases.iter().any(|parent| self.is_base(base, parent.contract_no))
-    }
 }
 
 /// Internal error type for contract resolution logic
@@ -109,7 +98,7 @@ impl<'a> Visitor for BaseContractResolver<'a> {
                 name.loc,
                 format!("contract '{}' duplicate base '{}'", contract_id, name),
             ));
-        } else if self.is_base(contract_no, no) {
+        } else if is_base(contract_no, no, self.ctx) {
             self.ctx.diagnostics.push(Diagnostic::error(
                 name.loc,
                 format!("base '{}' from contract '{}' is cyclic", name, contract_id),
@@ -382,4 +371,15 @@ impl<'a> Visitor for ContractResolver<'a> {
 
         Ok(())
     }
+}
+
+// Is a contract a base of another contract
+pub fn is_base(base: usize, derived: usize, ctx: &Context) -> bool {
+    let bases = &ctx.contracts[derived].bases;
+
+    if base == derived || bases.iter().any(|e| e.contract_no == base) {
+        return true;
+    }
+
+    bases.iter().any(|parent| is_base(base, parent.contract_no, ctx))
 }

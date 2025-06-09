@@ -208,4 +208,23 @@ impl Context {
     ) -> Result<Type, ()> {
         todo!()
     }
+
+    /// base contracts in depth-first post-order
+    pub fn contract_bases(&self, contract_no: usize) -> Vec<usize> {
+        let mut order = Vec::new();
+
+        fn base(contract_no: usize, order: &mut Vec<usize>, ctx: &Context) {
+            for b in ctx.contracts[contract_no].bases.iter().rev() {
+                base(b.contract_no, order, ctx);
+            }
+
+            if !order.contains(&contract_no) {
+                order.push(contract_no);
+            }
+        }
+
+        base(contract_no, &mut order, self);
+
+        order
+    }
 }
