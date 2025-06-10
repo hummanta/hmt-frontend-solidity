@@ -210,6 +210,11 @@ impl Type {
                 Type::DynamicBytes
         )
     }
+
+    /// Is this a reference to contract storage?
+    pub fn is_contract_storage(&self) -> bool {
+        matches!(self, Type::StorageRef(..))
+    }
 }
 
 /// Resolve all the types we can find (enums, structs, contracts).

@@ -514,6 +514,7 @@ version = "0.5.0"
 dependencies = [
  "anyhow",
  "ariadne",
+ "bitflags 2.9.1",
  "clap",
  "cranelift",
  "indexmap",

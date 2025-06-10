@@ -22,6 +22,7 @@ pub mod expression;
 pub mod file;
 pub mod function;
 pub mod import;
+pub mod mutability;
 pub mod pragma;
 pub mod semicolon;
 pub mod symtable;

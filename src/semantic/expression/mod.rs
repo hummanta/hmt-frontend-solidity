@@ -26,6 +26,7 @@ use crate::{
 
 pub mod constructor;
 pub mod resolve_expression;
+pub mod retrieve_type;
 pub mod strings;
 
 /// When resolving an expression, what type are we looking for

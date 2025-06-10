@@ -22,6 +22,7 @@ use crate::{
         file::File,
         function::FunctionResolver,
         import::ImportResolver,
+        mutability,
         pragma::PragmaResolver,
         semicolon::StraySemicolonChecker,
         symtable::Symtable,
@@ -80,6 +81,9 @@ pub(crate) fn analyze(
 
     // Check for stray semicolons
     ast.visit(&mut StraySemicolonChecker::new(ctx))?;
+
+    // Now check state mutability for all contracts
+    mutability::check(ctx, no);
 
     Ok(())
 }

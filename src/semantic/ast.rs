@@ -24,7 +24,6 @@ use num_rational::BigRational;
 use once_cell::unsync::OnceCell;
 
 use std::{
-    cell::RefCell,
     collections::{BTreeMap, HashMap, HashSet},
     fmt,
     fmt::Write,
@@ -400,22 +399,8 @@ pub struct Function {
     pub annotations: ConstructorAnnotations,
     /// Which contracts should we use the mangled name in?
     pub mangled_name_contracts: HashSet<usize>,
-    /// This indexmap stores the accounts this functions needs to be called on Solana
-    /// The string is the account's name
-    pub solana_accounts: RefCell<IndexMap<String, SolanaAccount>>,
     /// List of contracts this function creates
     pub creates: Vec<(pt::Loc, usize)>,
-}
-
-/// This struct represents a Solana account. There is no name field, because
-/// it is stored in a IndexMap<String, SolanaAccount> (see above)
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct SolanaAccount {
-    pub loc: pt::Loc,
-    pub is_signer: bool,
-    pub is_writer: bool,
-    /// Has the compiler automatically generated this account entry?
-    pub generated: bool,
 }
 
 #[derive(Debug, Default)]
@@ -513,7 +498,6 @@ impl Function {
             mangled_name,
             annotations: ConstructorAnnotations::default(),
             mangled_name_contracts: HashSet::new(),
-            solana_accounts: IndexMap::new().into(),
             creates: Vec::new(),
         }
     }
@@ -815,8 +799,6 @@ pub struct Contract {
     pub code: OnceCell<Vec<u8>>,
     /// Can the contract be instantiated, i.e. not abstract, no errors, etc.
     pub instantiable: bool,
-    /// Account of deployed program code on Solana
-    pub program_id: Option<Vec<u8>>,
 }
 
 impl Contract {
@@ -1344,6 +1326,7 @@ pub trait Recurse {
 
 impl Recurse for Expression {
     type ArgType = Expression;
+
     fn recurse<T>(&self, cx: &mut T, f: fn(expr: &Expression, ctx: &mut T) -> bool) {
         if f(self, cx) {
             match self {
