@@ -1013,8 +1013,8 @@ YulIdentifier: Identifier = {
     <l:@L> "view" <r:@L> => Identifier{loc: Loc::File(no, l, r), name: "view".to_string()},
     <l:@L> "virtual" <r:@L> => Identifier{loc: Loc::File(no, l, r), name: "virtual".to_string()},
     <l:@L> "while" <r:@L> => Identifier{loc: Loc::File(no, l, r), name: "while".to_string()},
-    <l:@L> <i:Int> <r:@L> => Identifier{loc: Loc::File(no, l, r), name: format!("int{}", i)},
-    <l:@L> <u:Uint> <r:@L> => Identifier{loc: Loc::File(no, l, r), name: format!("uint{}", u)},
+    <l:@L> <i:Int> <r:@L> => Identifier{loc: Loc::File(no, l, r), name: format!("int{i}")},
+    <l:@L> <u:Uint> <r:@L> => Identifier{loc: Loc::File(no, l, r), name: format!("uint{u}")},
     <l:@L> "string" <r:@L> => Identifier{loc: Loc::File(no, l, r), name: "string".to_string()},
     <l:@L> "unchecked" <r:@L> => Identifier{loc: Loc::File(no, l, r), name: "unchecked".to_string()},
 }

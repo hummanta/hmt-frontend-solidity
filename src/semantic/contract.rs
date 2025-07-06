@@ -76,7 +76,7 @@ impl<'a> Visitor for BaseContractResolver<'a> {
         if self.ctx.contracts[contract_no].is_library() {
             self.ctx.diagnostics.push(Diagnostic::error(
                 base.loc,
-                format!("library '{}' cannot have a base contract", contract_id),
+                format!("library '{contract_id}' cannot have a base contract"),
             ));
             return Ok(());
         }
@@ -96,12 +96,12 @@ impl<'a> Visitor for BaseContractResolver<'a> {
         } else if self.ctx.contracts[contract_no].bases.iter().any(|e| e.contract_no == no) {
             self.ctx.diagnostics.push(Diagnostic::error(
                 name.loc,
-                format!("contract '{}' duplicate base '{}'", contract_id, name),
+                format!("contract '{contract_id}' duplicate base '{name}'"),
             ));
         } else if is_base(contract_no, no, self.ctx) {
             self.ctx.diagnostics.push(Diagnostic::error(
                 name.loc,
-                format!("base '{}' from contract '{}' is cyclic", name, contract_id),
+                format!("base '{name}' from contract '{contract_id}' is cyclic"),
             ));
         } else if self.ctx.contracts[contract_no].is_interface() &&
             !self.ctx.contracts[no].is_interface()
@@ -117,8 +117,7 @@ impl<'a> Visitor for BaseContractResolver<'a> {
             self.ctx.diagnostics.push(Diagnostic::error(
                 name.loc,
                 format!(
-                    "library '{}' cannot be used as base contract for {} '{}'",
-                    name, contract_ty, contract_id,
+                    "library '{name}' cannot be used as base contract for {contract_ty} '{contract_id}'"
                 ),
             ));
         } else {

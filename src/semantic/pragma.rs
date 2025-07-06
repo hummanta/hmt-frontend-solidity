@@ -53,7 +53,7 @@ impl<'a> PragmaResolver<'a> {
         } else {
             self.ctx.diagnostics.push(Diagnostic::error(
                 *loc,
-                format!("unknown pragma '{}' with value '{}'", name, value),
+                format!("unknown pragma '{name}' with value '{value}'"),
             ));
         }
     }
