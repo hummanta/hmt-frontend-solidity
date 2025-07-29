@@ -13,7 +13,7 @@ anyhow = "1.0.98"
 ariadne = { version = "0.5.1", features = ["auto-color"] }
 bitflags = "2.9.1"
 clap = { version = "4.5.41", features = ["derive", "env"] }
-cranelift = { version = "0.121.1", features = ["module", "object"] }
+cranelift = { version = "0.122.0", features = ["module", "object"] }
 indexmap = "2.10.0"
 itertools = "0.14.0"
 lalrpop-util = "0.22.2"
