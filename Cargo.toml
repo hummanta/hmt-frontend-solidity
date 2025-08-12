@@ -17,7 +17,7 @@ cranelift = { version = "0.122.0", features = ["module", "object"] }
 indexmap = "2.10.0"
 itertools = "0.14.0"
 lalrpop-util = "0.22.2"
-logos = "0.15.0"
+logos = "0.15.1"
 normalize-path = "0.2.1"
 num-bigint = "0.4.6"
 num-rational = "0.4.2"
