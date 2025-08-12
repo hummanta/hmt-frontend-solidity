@@ -4,7 +4,7 @@ default:
 
 # Build the project
 build profile="dev" target="":
-    RUST_BACKTRACE=1 cargo build --workspace --all-features --tests --bins --benches \
+    cargo build --workspace --all-features --all-targets \
         --profile {{profile}} {{ if target != "" { "--target " + target } else { "" } }}
 
 # Clean the build artifacts
@@ -14,7 +14,7 @@ clean:
 
 # Linting
 clippy:
-   cargo clippy --workspace --all-features --tests --bins --benches -- -D warnings
+   cargo clippy --workspace --all-features --all-targets -- -D warnings
 
 # Check formatting
 check-fmt:
@@ -26,7 +26,7 @@ fmt:
 
 # Test the project
 test:
-    RUST_BACKTRACE=1 cargo test --workspace --all-features --verbose
+    cargo test --workspace --all-features --all-targets
 
 # Run all the checks
 check:
@@ -40,10 +40,10 @@ install:
     just install-hmt-manifest
 
 install-hmt-packager:
-    cargo install hmt-packager --git https://github.com/hummanta/hummanta --tag v0.11.6
+    cargo install hmt-packager --git https://github.com/hummanta/hummanta --tag v0.11.12
 
 install-hmt-manifest:
-    cargo install hmt-manifest --git https://github.com/hummanta/hummanta --tag v0.11.6
+    cargo install hmt-manifest --git https://github.com/hummanta/hummanta --tag v0.11.12
 
 # Uninstall pre-requisites
 uninstall:
