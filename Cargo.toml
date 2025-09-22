@@ -14,7 +14,7 @@ ariadne = { version = "0.5.1", features = ["auto-color"] }
 bitflags = "2.9.4"
 clap = { version = "4.5.47", features = ["derive", "env"] }
 cranelift = { version = "0.123.1", features = ["module", "object"] }
-indexmap = "2.11.3"
+indexmap = "2.11.4"
 itertools = "0.14.0"
 lalrpop-util = "0.22.2"
 logos = "0.15.1"
