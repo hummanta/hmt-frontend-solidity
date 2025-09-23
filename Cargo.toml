@@ -9,11 +9,11 @@ name = "hmt-frontend-solidity"
 path = "src/bin/main.rs"
 
 [dependencies]
-anyhow = "1.0.99"
+anyhow = "1.0.100"
 ariadne = { version = "0.5.1", features = ["auto-color"] }
 bitflags = "2.9.4"
 clap = { version = "4.5.48", features = ["derive", "env"] }
-cranelift = { version = "0.123.1", features = ["module", "object"] }
+cranelift = { version = "0.124.0", features = ["module", "object"] }
 indexmap = "2.11.3"
 itertools = "0.14.0"
 lalrpop-util = "0.22.2"
