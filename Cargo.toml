@@ -11,7 +11,7 @@ path = "src/bin/main.rs"
 [dependencies]
 anyhow = "1.0.100"
 ariadne = { version = "0.5.1", features = ["auto-color"] }
-bitflags = "2.9.4"
+bitflags = "2.10.0"
 clap = { version = "4.5.49", features = ["derive", "env"] }
 cranelift = { version = "0.124.2", features = ["module", "object"] }
 indexmap = "2.11.4"
