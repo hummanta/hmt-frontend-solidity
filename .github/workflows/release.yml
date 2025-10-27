@@ -52,14 +52,14 @@ jobs:
         run: just package release ${{ matrix.target }} ${{ github.ref_name }}
 
       - name: Upload package tarballs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ matrix.target }}-tarballs
           path: target/artifacts/*.tar.gz
           compression-level: 0
 
       - name: Upload checksums
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ matrix.target }}-checksums
           path: target/artifacts/*.sha256
