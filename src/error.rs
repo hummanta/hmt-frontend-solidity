@@ -17,7 +17,7 @@ use thiserror::Error;
 use crate::parser::ast::Loc;
 
 /// An error thrown by [Lexer].
-#[derive(Debug, Clone, PartialEq, Eq, Error)]
+#[derive(Debug, Clone, PartialEq, Eq, Error, Default)]
 pub enum LexicalError {
     #[error("end of file found in comment")]
     EndOfFileInComment(Loc),
@@ -44,11 +44,6 @@ pub enum LexicalError {
     ExpectedFrom(Loc, String),
 
     #[error("invalid token")]
+    #[default]
     InvalidToken,
-}
-
-impl Default for LexicalError {
-    fn default() -> Self {
-        Self::InvalidToken
-    }
 }
