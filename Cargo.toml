@@ -10,7 +10,7 @@ path = "src/bin/main.rs"
 
 [dependencies]
 anyhow = "1.0.100"
-ariadne = { version = "0.5.1", features = ["auto-color"] }
+ariadne = { version = "0.6.0", features = ["auto-color"] }
 bitflags = "2.10.0"
 clap = { version = "4.5.51", features = ["derive", "env"] }
 cranelift = { version = "0.125.3", features = ["module", "object"] }
