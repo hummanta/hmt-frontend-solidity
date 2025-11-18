@@ -12,7 +12,7 @@ path = "src/bin/main.rs"
 anyhow = "1.0.100"
 ariadne = { version = "0.6.0", features = ["auto-color"] }
 bitflags = "2.10.0"
-clap = { version = "4.5.51", features = ["derive", "env"] }
+clap = { version = "4.5.52", features = ["derive", "env"] }
 cranelift = { version = "0.125.3", features = ["module", "object"] }
 indexmap = "2.12.0"
 itertools = "0.14.0"
