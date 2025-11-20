@@ -1,0 +1,21 @@
+version = "v0.5.8"
+
+[artifacts.x86_64-unknown-linux-gnu]
+url = "https://github.com/hummanta/hmt-frontend-solidity/releases/download/v0.5.8/hmt-frontend-solidity-v0.5.8-x86_64-unknown-linux-gnu.tar.gz"
+hash = "af211901bfd0271a2d25070c5cba22d01a97e4f6730fa50e0dc5cb4bee5da15f"
+
+[artifacts.x86_64-pc-windows-msvc]
+url = "https://github.com/hummanta/hmt-frontend-solidity/releases/download/v0.5.8/hmt-frontend-solidity-v0.5.8-x86_64-pc-windows-msvc.tar.gz"
+hash = "d8f5c2f222d8229d9d4e7e657fa85233b51d87973779063e2884adaf0a699c70"
+
+[artifacts.aarch64-unknown-linux-gnu]
+url = "https://github.com/hummanta/hmt-frontend-solidity/releases/download/v0.5.8/hmt-frontend-solidity-v0.5.8-aarch64-unknown-linux-gnu.tar.gz"
+hash = "ace2f590216d7a117406782e8e254d7bf998ca5b2b8975f20612d76010285fef"
+
+[artifacts.x86_64-apple-darwin]
+url = "https://github.com/hummanta/hmt-frontend-solidity/releases/download/v0.5.8/hmt-frontend-solidity-v0.5.8-x86_64-apple-darwin.tar.gz"
+hash = "46a9b98fa0378cd409e029f12700ea55b490fad89f9bf0be197d95975f9dfe24"
+
+[artifacts.aarch64-apple-darwin]
+url = "https://github.com/hummanta/hmt-frontend-solidity/releases/download/v0.5.8/hmt-frontend-solidity-v0.5.8-aarch64-apple-darwin.tar.gz"
+hash = "af11d58554df86300c6c3cf94c88bf174a1641b48d0aec0cba3d85d368665ad3"
