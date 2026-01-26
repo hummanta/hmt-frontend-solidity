@@ -1,7 +1,7 @@
 [package]
 name = "hmt-frontend-solidity"
 description = "Parsing the Solidity source code and generating the Cranelift IR"
-version = "0.5.11"
+version = "0.5.12"
 edition = "2021"
 
 [[bin]]
@@ -13,7 +13,7 @@ anyhow = "1.0"
 ariadne = { version = "0.6", features = ["auto-color"] }
 bitflags = "2.10"
 clap = { version = "4.5", features = ["derive", "env"] }
-cranelift = { version = "0.127", features = ["module", "object"] }
+cranelift = { version = "0.128", features = ["module", "object"] }
 indexmap = "2.13"
 itertools = "0.14"
 lalrpop-util = "0.22"
