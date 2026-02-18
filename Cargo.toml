@@ -28,7 +28,7 @@ target-lexicon = "0.13"
 thiserror = "2.0"
 
 [build-dependencies]
-lalrpop = "0.22"
+lalrpop = "0.23"
 
 [features]
 default = []
