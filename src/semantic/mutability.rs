@@ -392,19 +392,19 @@ fn read_expression(expr: &Expression, state: &mut StateCheck) -> bool {
 fn write_expression(expr: &Expression, state: &mut StateCheck) -> bool {
     match expr {
         Expression::StructMember { loc, expr: array, .. } |
-        Expression::Subscript { loc, array, .. } => {
-            if array.ty().is_contract_storage() {
-                state.data_account |= DataAccountUsage::WRITE;
-                state.write(loc);
-                return false;
-            }
+        Expression::Subscript { loc, array, .. }
+            if array.ty().is_contract_storage() =>
+        {
+            state.data_account |= DataAccountUsage::WRITE;
+            state.write(loc);
+            return false;
         }
-        Expression::Variable { loc, ty, var_no: _ } => {
-            if ty.is_contract_storage() && !expr.ty().is_contract_storage() {
-                state.data_account |= DataAccountUsage::WRITE;
-                state.write(loc);
-                return false;
-            }
+        Expression::Variable { loc, ty, var_no: _ }
+            if ty.is_contract_storage() && !expr.ty().is_contract_storage() =>
+        {
+            state.data_account |= DataAccountUsage::WRITE;
+            state.write(loc);
+            return false;
         }
         Expression::StorageVariable { loc, .. } => {
             state.data_account |= DataAccountUsage::WRITE;
