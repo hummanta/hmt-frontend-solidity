@@ -40,10 +40,10 @@ install:
     just install-hmt-manifest
 
 install-hmt-packager:
-    cargo install hmt-packager --git https://github.com/hummanta/hummanta --tag v0.11.20
+    cargo install hmt-packager --git https://github.com/hummanta/hummanta --tag v0.11.33
 
 install-hmt-manifest:
-    cargo install hmt-manifest --git https://github.com/hummanta/hummanta --tag v0.11.20
+    cargo install hmt-manifest --git https://github.com/hummanta/hummanta --tag v0.11.33
 
 # Uninstall pre-requisites
 uninstall:
